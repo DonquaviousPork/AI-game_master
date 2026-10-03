@@ -155,8 +155,104 @@ Expected Workflow: 1) Player chooses Save or Load. 2) On save, GameState produce
 Error/Alternative Cases: Write failure → show an error, game continues unsaved. Load failure or corrupted file → show an error, don't overwrite the current session, let the player choose another slot.
 
 
-Class Diagram:
+**Class Diagram:**
 
 <img width="8191" height="3482" alt="Character Action Management-2026-10-03-204824" src="https://github.com/user-attachments/assets/51f19ece-52b7-42ef-810f-7c1466adeb6c" />
+
+1. _Facade_
+
+Design problem it addresses: Both the GUI and the CLI need access to the same functionality (scenario generation, character creation, taking a turn, saving/loading), but neither should need to know about the internal collaboration between AgentOrchestrator, GameEngine, and SaveRepository to do so.
+
+Participating classes: GameFacade, AgentOrchestrator, GameEngine, SaveRepository.
+
+Role of each class:
+
+GameFacade — exposes a small, simple set of methods (submitAction, saveGame, etc.) and internally routes each call to the right subsystem.
+AgentOrchestrator, GameEngine, SaveRepository — the subsystems doing the actual work, hidden behind the facade.
+
+Why it's appropriate: The system has two front ends (GUI and CLI) that need identical functionality. Without a shared entry point, the logic for coordinating the AI layer and the engine would have to be duplicated in both, or each front end would need to understand the internal architecture directly.
+
+What would be harder without it: Any change to how a turn is processed (e.g. adding a new validation step) would need to be updated in both the GUI code and the CLI code separately, and both front ends would be coupled to internal classes like AgentOrchestrator and GameEngine instead of one stable interface.
+
+2. _State_
+
+Design problem it addresses: The game behaves differently depending on what stage it's in — during setup, only character creation actions are valid; during the story, turn-based actions are valid; once the game has ended, no further actions should be accepted. Without a defined structure, this would collapse into a large block of conditional logic checking "what phase are we in" before every action.
+
+Participating classes: GamePhase (interface), SetupPhase, StoryPhase, CombatPhase, EndedPhase, GameEngine.
+
+Role of each class:
+
+GamePhase — defines the common interface (handleAction) that every phase implements.
+SetupPhase, StoryPhase, CombatPhase, EndedPhase — each implements handleAction according to what's legal in that phase.
+GameEngine — holds a reference to the current GamePhase and delegates action-handling to it, rather than deciding behavior itself.
+
+Why it's appropriate: The set of valid actions and the overall behavior of the engine genuinely changes based on game phase — this is exactly the problem the State pattern is meant to solve, rather than branching on a phase flag throughout the codebase.
+
+What would be harder without it: Every method that processes an action would need an if/else or switch on the current phase, and adding a new phase (e.g. a "dialogue" phase) would mean hunting down and editing every one of those conditionals instead of adding one new class.
+
+3. _Command_
+
+Design problem it addresses: Player actions need to be represented as discrete, storable units — so the system can keep a turn history, support review, and potentially support undo — rather than being handled as one-off method calls that leave no trace.
+
+Participating classes: Action (interface), AttackAction, AbilityCheckAction, FleeAction, ActionHistory, GameEngine.
+
+Role of each class:
+
+Action — defines the common interface (execute) all action types implement.
+AttackAction, AbilityCheckAction, FleeAction — concrete actions, each encapsulating what's needed to carry out that specific kind of action.
+ActionHistory — stores executed Action objects in order and can undo the most recent one.
+GameEngine — receives an Action (built from the AI's interpretation of player input) and asks it to execute, rather than hard-coding logic per action type.
+
+Why it's appropriate: Turning each player action into an object (rather than a direct function call) makes it possible to log, replay, or inspect the history of what happened in a game session — useful both for the story-memory feature and for debugging.
+
+What would be harder without it: Without a common Action representation, each action type would need its own separate handling path with no shared structure, and maintaining an event/turn history for F12 (story memory) would require a separate, parallel tracking mechanism instead of reusing ActionHistory.
+
+4. _Observer_
+
+Design problem it addresses: The GUI (and potentially the CLI) must reflect the current game state — character health, story log, current event — immediately whenever it changes, without GameState needing to know the details of how each view displays itself.
+
+Participating classes: GameState (subject), GameView (observer interface), GUIView, CLIView.
+
+Role of each class:
+
+GameState — holds the authoritative data and notifies registered observers whenever it changes.
+GameView — defines the interface (onStateChanged) that any view must implement to receive updates.
+GUIView, CLIView — concrete views that update their respective displays when notified.
+
+Why it's appropriate: State changes (health drops, new story events, phase transitions) need to propagate to whatever is currently displaying the game, and the same state changes apply whether the player is using the GUI or the CLI — notification shouldn't be hard-coded to one specific view type.
+
+What would be harder without it: GameState (or GameEngine) would need direct references to specific view classes and would have to call their update methods explicitly, tightly coupling the game core to the presentation layer and making it harder to add or change a front end later.
+
+5. _Adapter_
+
+Design problem it addresses: The system needs to call an external LLM provider, but should not be locked into one specific provider's API — the handout itself asks that the AI model be "behind an interface so it can be replaced with relative ease."
+
+Participating classes: LLMClient (interface), OpenAIClient, AgentOrchestrator.
+
+Role of each class:
+
+LLMClient — defines a provider-agnostic interface (generate(prompt)) that the rest of the system relies on.
+OpenAIClient — adapts that interface to the specific request/response format of a particular provider's API.
+AgentOrchestrator — depends only on LLMClient, never on OpenAIClient directly.
+
+Why it's appropriate: LLM providers have different APIs, request formats, and authentication methods. Wrapping the specific provider behind a common interface means the rest of the system — especially AgentOrchestrator, which is central to several features — is unaffected by which provider is used.
+
+What would be harder without it: Switching providers, or supporting more than one, would require changing every place in the code that calls the LLM directly, instead of writing one new adapter class.
+
+6. _Memento_
+
+Design problem it addresses: The game needs to be saved and restored without SaveRepository (or any external class) needing to know the internal structure of GameState, Party, Character, and the rest.
+
+Participating classes: GameState (originator), GameSnapshot (memento), SaveRepository (caretaker).
+
+Role of each class:
+
+GameState — produces a GameSnapshot of itself (createSnapshot) and can restore itself from one (restore), controlling exactly what's captured.
+GameSnapshot — a plain data container holding the saved information, with no behavior of its own.
+SaveRepository — stores and retrieves GameSnapshot objects (to/from a file or database) without inspecting or depending on their internal structure.
+
+Why it's appropriate: Save/load needs to capture a complete, consistent copy of game state at a point in time, and restore it later — the Memento pattern is the standard solution for this, and it keeps the storage mechanism (SaveRepository) decoupled from the internal design of GameState.
+
+What would be harder without it: SaveRepository would need direct knowledge of every field inside GameState, Party, and Character to serialize and restore them correctly, meaning any future change to those internal structures would risk breaking the save system too.
 
 
