@@ -174,6 +174,7 @@ Why it's appropriate: The system has two front ends (GUI and CLI) that need iden
 
 What would be harder without it: Any change to how a turn is processed (e.g. adding a new validation step) would need to be updated in both the GUI code and the CLI code separately, and both front ends would be coupled to internal classes like AgentOrchestrator and GameEngine instead of one stable interface.
 
+
 2. _State_
 
 Design problem it addresses: The game behaves differently depending on what stage it's in — during setup, only character creation actions are valid; during the story, turn-based actions are valid; once the game has ended, no further actions should be accepted. Without a defined structure, this would collapse into a large block of conditional logic checking "what phase are we in" before every action.
@@ -189,6 +190,7 @@ GameEngine — holds a reference to the current GamePhase and delegates action-h
 Why it's appropriate: The set of valid actions and the overall behavior of the engine genuinely changes based on game phase — this is exactly the problem the State pattern is meant to solve, rather than branching on a phase flag throughout the codebase.
 
 What would be harder without it: Every method that processes an action would need an if/else or switch on the current phase, and adding a new phase (e.g. a "dialogue" phase) would mean hunting down and editing every one of those conditionals instead of adding one new class.
+
 
 3. _Command_
 
@@ -207,6 +209,7 @@ Why it's appropriate: Turning each player action into an object (rather than a d
 
 What would be harder without it: Without a common Action representation, each action type would need its own separate handling path with no shared structure, and maintaining an event/turn history for F12 (story memory) would require a separate, parallel tracking mechanism instead of reusing ActionHistory.
 
+
 4. _Observer_
 
 Design problem it addresses: The GUI (and potentially the CLI) must reflect the current game state — character health, story log, current event — immediately whenever it changes, without GameState needing to know the details of how each view displays itself.
@@ -223,6 +226,7 @@ Why it's appropriate: State changes (health drops, new story events, phase trans
 
 What would be harder without it: GameState (or GameEngine) would need direct references to specific view classes and would have to call their update methods explicitly, tightly coupling the game core to the presentation layer and making it harder to add or change a front end later.
 
+
 5. _Adapter_
 
 Design problem it addresses: The system needs to call an external LLM provider, but should not be locked into one specific provider's API — the handout itself asks that the AI model be "behind an interface so it can be replaced with relative ease."
@@ -238,6 +242,7 @@ AgentOrchestrator — depends only on LLMClient, never on OpenAIClient directly.
 Why it's appropriate: LLM providers have different APIs, request formats, and authentication methods. Wrapping the specific provider behind a common interface means the rest of the system — especially AgentOrchestrator, which is central to several features — is unaffected by which provider is used.
 
 What would be harder without it: Switching providers, or supporting more than one, would require changing every place in the code that calls the LLM directly, instead of writing one new adapter class.
+
 
 6. _Memento_
 
