@@ -14,17 +14,142 @@ This game takes heavy inspiration from Dungeons & Dragons. It is a single player
 
 **Feature Specification**
 
-F01	  Generate scenario	AI
-F02	  Auto-generate character (class-typical stats)	Hybrid
-F03	  Manual stat allocation	Deterministic
-F04	  Manage party (1 to 4 characters)	Deterministic
-F05	  Generate next story event	AI
-F06	  Take a turn (player chooses an action)	Hybrid
-F07	  Ability check	Deterministic
-F08	  Attack roll	Deterministic
-F09	  Damage roll	Deterministic
-F10	  Saving throw	Deterministic
-F11	  Narrate outcome and advance the story	AI
-F12	  Story memory	Hybrid
-F13	  Detect end of game (defeat or victory)	Hybrid
-F14	  Save/load game	Deterministic
+F01 — Generate Scenario
+
+Description: The AI creates a starting scenario that establishes the goal (win-condition) and the central conflict. Generated once, when the player starts a new game.
+User Interaction: Player selects "New Game." No input required — generation happens automatically and the scenario is displayed before character creation begins.
+Input: None (optionally a genre/tone preference, if you want to offer one).
+Output: A Scenario object containing a premise, setting, and win-condition, shown to the player as introductory text.
+AI Involvement: AI.
+Expected Workflow: 1) Player starts a new game. 2) GameFacade requests scenario generation. 3) AgentOrchestrator prompts the LLM for a scenario. 4) The result is parsed into a Scenario object and stored in GameState. 5) The scenario is displayed, and character creation begins.
+Error/Alternative Cases: If the AI response is malformed or missing a clear win-condition, the system retries the request or falls back to a default template scenario.
+
+F02 — Auto-Generate Character (Class-Typical Stats)
+
+Description: The player chooses a predefined character class, which comes with a fixed default stat allocation.
+User Interaction: During character creation, player selects a class from a list (e.g. Fighter, Wizard, Rogue).
+Input: Selected class.
+Output: A new Character with stats set to that class's default spread.
+AI Involvement: Deterministic.
+Expected Workflow: 1) Player selects a class. 2) CharacterFactory looks up the fixed stat spread for that class. 3) A new Character is created and added to the Party.
+Error/Alternative Cases: If the party is already at 4 characters, the system blocks creation and informs the player (links to F04).
+
+F03 — Manual Stat Allocation
+
+Description: If the player wants to customize their character, they manually allocate stat points themselves out of a fixed pool.
+User Interaction: Player selects "Custom" during character creation and assigns points to each stat using the GUI (or types values via CLI) until the pool is spent.
+Input: Point values assigned to each of the six stats.
+Output: A new Character with the player-assigned stats.
+AI Involvement: Deterministic.
+Expected Workflow: 1) Player chooses manual allocation. 2) Player assigns points to each stat. 3) System validates the total matches the pool and no stat exceeds the allowed maximum. 4) Character is created with these stats.
+Error/Alternative Cases: If the player allocates more or fewer points than the pool allows, or exceeds a stat's maximum, the system rejects the submission and prompts for a correction.
+
+F04 — Manage Party (1 to 4 Characters)
+
+Description: Allows the player to add new characters to the party or remove existing ones, keeping the party between 1 and 4 characters.
+User Interaction: Player uses "Add Character" or "Remove Character" controls during character creation.
+Input: The character to add (from F02/F03) or remove.
+Output: An updated Party.
+AI Involvement: Deterministic.
+Expected Workflow: 1) Player adds or removes a character. 2) Party validates the resulting size is between 1 and 4. 3) The party list updates.
+Error/Alternative Cases: Attempting to add a 5th character or remove the last remaining character is blocked, with a message explaining the limit.
+
+F05 — Generate Next Story Event
+
+Description: After the player clears an event, the AI generates the next event, moving the story closer to its conclusion.
+User Interaction: Happens automatically once all characters have completed their turns for the current event.
+Input: Current GameState, relevant story memory (F12).
+Output: A new StoryEvent presented to the player.
+AI Involvement: AI.
+Expected Workflow: 1) Current event is marked resolved. 2) AgentOrchestrator requests the next event from the LLM, providing recent story memory. 3) The result is parsed into a StoryEvent. 4) It's displayed, and a new turn cycle begins.
+Error/Alternative Cases: If the generated event is malformed or disconnected from the current state, the system retries or falls back to a generic transitional event.
+
+F06 — Take a Turn (Player Chooses an Action)
+
+Description: During an event, each character gets a turn to perform an action, one character at a time.
+User Interaction: On their turn, the player types or selects an action for the active character (e.g. attack, use ability, talk, flee).
+Input: Free-text or selected action, plus the acting character.
+Output: A proposed Action passed on for resolution (F07–F10), followed by narration (F11).
+AI Involvement: Hybrid — the AI interprets free-text input into a structured action; the engine validates and resolves it.
+Expected Workflow: 1) System indicates whose turn it is. 2) Player submits an action. 3) AgentOrchestrator interprets it into a structured Action (e.g. "attack goblin with sword"). 4) RuleEngine validates it's legal given the current state. 5) The appropriate roll(s) are triggered. 6) Turn passes to the next character.
+Error/Alternative Cases: If the action is invalid (e.g. targets something that doesn't exist, or the character is incapacitated), the system rejects it and asks the player to choose again.
+
+F07 — Ability Check
+
+Description: Some actions require a skill check. The system sets a minimum roll needed; the player rolls a die and adds the relevant stat modifier. Meeting or exceeding the minimum succeeds.
+User Interaction: Triggered automatically when an action requires a check; the player sees the roll and result.
+Input: The acting character, the relevant stat, and the required minimum (difficulty).
+Output: Roll result and success/failure outcome.
+AI Involvement: Deterministic.
+Expected Workflow: 1) Action requires a check. 2) RuleEngine rolls a die, adds the character's relevant stat modifier. 3) Total is compared to the difficulty. 4) Outcome (success/failure) is returned.
+Error/Alternative Cases: If the required stat or difficulty is missing or invalid, the engine rejects the check and requests clarification from the AI's proposed action before proceeding.
+
+F08 — Attack Roll
+
+Description: When a character attacks, the system rolls a die, adds the character's relevant modifier, and compares it to the target's armor class. Meeting or exceeding it results in a hit, proceeding to a damage roll.
+User Interaction: Triggered automatically as part of an attack action; the player sees the roll and hit/miss result.
+Input: Attacking character, target character/monster, weapon type.
+Output: Roll result and hit/miss outcome.
+AI Involvement: Deterministic.
+Expected Workflow: 1) Player's action resolves to an attack. 2) RuleEngine rolls a die, adds the attacker's modifier. 3) Result is compared to the target's armor class. 4) On hit, proceeds to F09; on miss, turn resolution ends.
+Error/Alternative Cases: If the target has no valid armor class or is already defeated, the attack is rejected before rolling.
+
+F09 — Damage Roll
+
+Description: When an attack lands, a die is rolled to determine how much health the target loses.
+User Interaction: Happens automatically immediately after a successful attack roll; the player sees the damage result and updated health.
+Input: Attacking character's weapon, relevant stat modifier, target.
+Output: Damage amount; target's health is reduced accordingly.
+AI Involvement: Deterministic.
+Expected Workflow: 1) F08 results in a hit. 2) RuleEngine rolls the weapon's damage die, adds the modifier. 3) Total is subtracted from the target's current health. 4) If health reaches 0, the target is defeated.
+Error/Alternative Cases: If health would go below 0, it's floored at 0 rather than going negative.
+
+F10 — Saving Throw
+
+Description: When a character is targeted by an attack or ability that can be avoided, they roll a die for a chance to reduce or negate the effect.
+User Interaction: Triggered automatically when the targeted character is eligible to save; the player sees the roll and outcome.
+Input: Targeted character, relevant stat, difficulty value of the triggering effect.
+Output: Roll result and whether the effect is avoided, reduced, or fully applied.
+AI Involvement: Deterministic.
+Expected Workflow: 1) An attack or ability allows a save. 2) RuleEngine rolls a die, adds the target's relevant stat modifier. 3) Result is compared to the difficulty value. 4) On success, the effect is reduced or negated; on failure, it fully applies.
+Error/Alternative Cases: If no difficulty value was provided with the triggering effect, the save defaults to a standard difficulty rather than failing outright.
+
+F11 — Narrate Outcome and Advance the Story
+
+Description: After a turn's rolls are resolved, the AI describes what happened in natural language and introduces the next development in the story.
+User Interaction: Displayed automatically after rolls resolve, as narrative text.
+Input: Resolved roll outcomes, current GameState, story memory.
+Output: Narration text shown to the player.
+AI Involvement: AI.
+Expected Workflow: 1) Rolls for the turn are resolved. 2) AgentOrchestrator sends the outcomes and relevant memory to the LLM. 3) The LLM returns narration. 4) Narration is checked against GameState for consistency and displayed.
+Error/Alternative Cases: If the narration contradicts the actual resolved outcome (e.g. wrong result stated), the narration is discarded and regenerated or replaced with a simple templated description.
+
+F12 — Story Memory
+
+Description: Keeps a running record of what has happened in the story so the AI game master stays consistent.
+User Interaction: Not directly interacted with; visible indirectly through consistent narration, and optionally viewable as an event log.
+Input: Each resolved StoryEvent and turn outcome.
+Output: A stored history used as context for F05 and F11.
+AI Involvement: Hybrid — storage is deterministic; summarizing older events for context is AI-assisted.
+Expected Workflow: 1) Each event/turn outcome is appended to memory. 2) When context is needed, MemoryManager supplies recent events (and summarizes older ones if the history is long). 3) This context is passed to the LLM for F05/F11.
+Error/Alternative Cases: If the history exceeds the model's input limit, older events are summarized or truncated, prioritizing recent events and the win-condition.
+
+F13 — Detect End of Game (Defeat or Victory)
+
+Description: After each event, the system checks whether an end-game condition has been met — either the win-condition was achieved or all characters died — and writes an appropriate conclusion.
+User Interaction: Happens automatically after each event; on trigger, the player sees an ending screen/summary.
+Input: Current GameState (party health, win-condition progress).
+Output: Game-end flag and a concluding narration (victory or defeat).
+AI Involvement: Hybrid — the condition check is deterministic; writing the concluding narration is AI.
+Expected Workflow: 1) After an event resolves, GameEngine checks if all characters' health is 0, or if the win-condition is marked complete. 2) If either is true, the game ends. 3) AgentOrchestrator requests a concluding narration from the AI. 4) The ending is displayed and no further turns are accepted.
+Error/Alternative Cases: If the AI's narration implies victory but GameState doesn't confirm the win-condition is met, the engine does not end the game — its own check is authoritative.
+
+F14 — Save/Load Game
+
+Description: Saves the complete current game to storage so the player can resume exactly where they left off.
+User Interaction: Player selects "Save" and names a slot; selects "Load" and picks a saved slot to resume.
+Input: Slot name; current GameState (on save) or chosen slot (on load).
+Output: A persisted save file; on load, the restored game screen.
+AI Involvement: Deterministic.
+Expected Workflow: 1) Player chooses Save or Load. 2) On save, GameState produces a snapshot and SaveRepository writes it. 3) On load, SaveRepository reads the snapshot and GameState is rebuilt from it. 4) The game resumes from that point.
+Error/Alternative Cases: Write failure → show an error, game continues unsaved. Load failure or corrupted file → show an error, don't overwrite the current session, let the player choose another slot.
