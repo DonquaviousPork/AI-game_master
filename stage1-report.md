@@ -157,5 +157,209 @@ Error/Alternative Cases: Write failure → show an error, game continues unsaved
 
 Class Diagram:
 
-<img width="2930" height="1530" alt="UML Common Elements" src="https://github.com/user-attachments/assets/295d11b0-1117-499e-aee3-d5bf71287270" />
+classDiagram
+    %% ===== Front door =====
+    class GameFacade {
+        +generateScenario() Scenario
+        +createCharacter(choice) Character
+        +manageParty(action, character)
+        +submitAction(text) TurnResult
+        +saveGame(slot)
+        +loadGame(slot)
+    }
+
+    %% ===== AI / Agent layer =====
+    class AgentOrchestrator {
+        -llmClient : LLMClient
+        -toolRegistry : ToolRegistry
+        -memoryManager : MemoryManager
+        +generateScenario() Scenario
+        +generateNextEvent(state) StoryEvent
+        +interpretAction(text, state) Action
+        +narrateOutcome(outcome, state) String
+        +generateEnding(state) String
+    }
+
+    class LLMClient {
+        <<interface>>
+        +generate(prompt) String
+    }
+
+    class OpenAIClient {
+        +generate(prompt) String
+    }
+
+    class ToolRegistry {
+        -tools : Map~String, Tool~
+        +getTool(name) Tool
+        +executeTool(name, params) Object
+    }
+
+    class Tool {
+        <<interface>>
+        +name() String
+        +execute(params) Object
+    }
+
+    class MemoryManager {
+        -events : List~StoryEvent~
+        +addEvent(event)
+        +getContext(maxTokens) String
+        +summarizeOld()
+    }
+
+    %% ===== Deterministic game core =====
+    class GameEngine {
+        -state : GameState
+        -phase : GamePhase
+        +validate(action) Boolean
+        +resolveAction(action) ActionResult
+        +checkEndCondition() Boolean
+        +advancePhase()
+    }
+
+    class RuleEngine {
+        +rollAbilityCheck(character, stat, difficulty) CheckResult
+        +rollAttack(attacker, target) AttackResult
+        +rollDamage(attacker, weapon) int
+        +rollSavingThrow(target, stat, difficulty) SaveResult
+    }
+
+    class GamePhase {
+        <<interface>>
+        +handleAction(action)
+    }
+    class SetupPhase
+    class StoryPhase
+    class CombatPhase
+    class EndedPhase
+
+    class GameState {
+        -party : Party
+        -scenario : Scenario
+        -currentEvent : StoryEvent
+        -phase : GamePhase
+        +createSnapshot() GameSnapshot
+        +restore(snapshot)
+    }
+
+    class Party {
+        -characters : List~Character~
+        +addCharacter(c)
+        +removeCharacter(c)
+        +isValidSize() Boolean
+    }
+
+    class Character {
+        -name : String
+        -stats : Map~Stat,int~
+        -health : int
+        -armorClass : int
+        -characterClass : CharacterClass
+        +applyDamage(amount)
+        +isAlive() Boolean
+    }
+
+    class CharacterClass {
+        <<interface>>
+        +defaultStats() Map~Stat,int~
+    }
+    class FighterClass
+    class WizardClass
+    class RogueClass
+
+    class CharacterFactory {
+        +createFromClass(classType) Character
+        +createCustom(statAllocations) Character
+    }
+
+    class Scenario {
+        -premise : String
+        -winCondition : String
+        -objectiveComplete : Boolean
+    }
+
+    class StoryEvent {
+        -description : String
+        -timestamp : DateTime
+    }
+
+    class Action {
+        <<interface>>
+        +execute(engine)
+    }
+    class AttackAction
+    class AbilityCheckAction
+    class FleeAction
+
+    class ActionHistory {
+        -actions : List~Action~
+        +record(action)
+        +undoLast()
+    }
+
+    %% ===== Persistence =====
+    class SaveRepository {
+        +save(slot, snapshot)
+        +load(slot) GameSnapshot
+    }
+
+    class GameSnapshot {
+        -partyData : Object
+        -scenarioData : Object
+        -eventHistory : Object
+    }
+
+    %% ===== View =====
+    class GameView {
+        <<interface>>
+        +onStateChanged(state)
+    }
+    class GUIView
+    class CLIView
+
+    %% ===== Relationships =====
+    GameFacade --> AgentOrchestrator
+    GameFacade --> GameEngine
+    GameFacade --> SaveRepository
+
+    AgentOrchestrator --> LLMClient
+    AgentOrchestrator --> ToolRegistry
+    AgentOrchestrator --> MemoryManager
+    LLMClient <|.. OpenAIClient
+    ToolRegistry --> Tool
+    MemoryManager --> "*" StoryEvent
+
+    GameEngine --> RuleEngine
+    GameEngine --> GameState
+    GameEngine --> GamePhase
+    GamePhase <|.. SetupPhase
+    GamePhase <|.. StoryPhase
+    GamePhase <|.. CombatPhase
+    GamePhase <|.. EndedPhase
+
+    GameState --> "1" Party
+    GameState --> "1" Scenario
+    GameState --> "1" StoryEvent : currentEvent
+    Party --> "1..4" Character
+    Character --> "1" CharacterClass
+    CharacterClass <|.. FighterClass
+    CharacterClass <|.. WizardClass
+    CharacterClass <|.. RogueClass
+    CharacterFactory --> CharacterClass
+    CharacterFactory --> Character
+
+    Action <|.. AttackAction
+    Action <|.. AbilityCheckAction
+    Action <|.. FleeAction
+    GameEngine --> ActionHistory
+    ActionHistory --> "*" Action
+
+    GameEngine --> SaveRepository
+    SaveRepository --> GameSnapshot
+    GameState --> GameSnapshot : creates
+
+    GameView <|.. GUIView
+    GameView <|.. CLIView
+    GameState --> "*" GameView : notifies
 
