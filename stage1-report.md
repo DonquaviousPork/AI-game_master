@@ -153,3 +153,9 @@ Output: A persisted save file; on load, the restored game screen.
 AI Involvement: Deterministic.
 Expected Workflow: 1) Player chooses Save or Load. 2) On save, GameState produces a snapshot and SaveRepository writes it. 3) On load, SaveRepository reads the snapshot and GameState is rebuilt from it. 4) The game resumes from that point.
 Error/Alternative Cases: Write failure → show an error, game continues unsaved. Load failure or corrupted file → show an error, don't overwrite the current session, let the player choose another slot.
+
+
+Class Diagram:
+
+<img width="2930" height="1530" alt="UML Common Elements" src="https://github.com/user-attachments/assets/295d11b0-1117-499e-aee3-d5bf71287270" />
+
