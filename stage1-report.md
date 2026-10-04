@@ -12,6 +12,8 @@ This game takes heavy inspiration from Dungeons & Dragons. It is a single player
 
 **How will the AI model interact with the rest of the software system?** The AI will never influence the game directly. Character creation, dice rolling and character actions are not AI driven.
 
+**--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------**
+
 **Feature Specification**
 
 F01 — Generate Scenario
@@ -153,6 +155,8 @@ Output: A persisted save file; on load, the restored game screen.
 AI Involvement: Deterministic.
 Expected Workflow: 1) Player chooses Save or Load. 2) On save, GameState produces a snapshot and SaveRepository writes it. 3) On load, SaveRepository reads the snapshot and GameState is rebuilt from it. 4) The game resumes from that point.
 Error/Alternative Cases: Write failure → show an error, game continues unsaved. Load failure or corrupted file → show an error, don't overwrite the current session, let the player choose another slot.
+
+**--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------**
 
 
 **Class Diagram:**
@@ -365,7 +369,7 @@ Alternative/Exception Flows: If the file is missing or corrupted, the system sho
 Postconditions: GameState reflects the restored snapshot.
 Related Feature(s): F14.
 
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+**--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------**
 
 
 **Sequence Diagram 1: Use Case 1**
