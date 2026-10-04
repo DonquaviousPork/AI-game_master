@@ -12,7 +12,7 @@ This game takes heavy inspiration from Dungeons & Dragons. It is a single player
 
 **How will the AI model interact with the rest of the software system?** The AI will never influence the game directly. Character creation, dice rolling and character actions are not AI driven.
 
-**----------------------------------------------------------------------------------------------------------------------------------------------------------------------**
+**-------------------------------------------------------------------------------------------------------------------------------------------------------**
 
 **Feature Specification**
 
