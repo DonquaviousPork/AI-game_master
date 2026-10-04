@@ -262,7 +262,7 @@ Why it's appropriate: Save/load needs to capture a complete, consistent copy of 
 What would be harder without it: SaveRepository would need direct knowledge of every field inside GameState, Party, and Character to serialize and restore them correctly, meaning any future change to those internal structures would risk breaking the save system too.
 
 
-**Use Case Diagram:**
+**Use Case Diagram: **
 
 <img width="1220" height="860" alt="Use case" src="https://github.com/user-attachments/assets/fb84e506-7aa7-4d28-a656-2adb11a5c4d2" />
 
@@ -364,4 +364,12 @@ Main Success Scenario: 1) Player picks a slot. 2) SaveRepository reads the GameS
 Alternative/Exception Flows: If the file is missing or corrupted, the system shows an error, doesn't overwrite the current session, and lets the player pick another slot or cancel.
 Postconditions: GameState reflects the restored snapshot.
 Related Feature(s): F14.
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+**Sequence Diagram 1: Use Case 1**
+
+<img width="8192" height="5363" alt="Untitled diagram-2026-10-04-222626" src="https://github.com/user-attachments/assets/c00b5bd2-24a0-4714-84f6-02e2112f8157" />
+
 
