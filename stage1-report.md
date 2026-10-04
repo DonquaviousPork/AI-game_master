@@ -157,7 +157,8 @@ Error/Alternative Cases: Write failure → show an error, game continues unsaved
 
 **Class Diagram:**
 
-<img width="8191" height="3482" alt="Character Action Management-2026-10-03-204824" src="https://github.com/user-attachments/assets/51f19ece-52b7-42ef-810f-7c1466adeb6c" />
+<img width="8191" height="3482" alt="Untitled diagram-2026-10-04-220915" src="https://github.com/user-attachments/assets/99740dcb-abd8-4438-a60e-415c005396e5" />
+
 
 1. _Facade_
 
