@@ -399,5 +399,17 @@ Related Feature(s): F14.
 | Feature | Description | Type | Related Use Case | Classes | Key Methods | Sequence Diagram | Design Pattern(s) |
 |---|---|---|---|---|---|---|---|
 | F01 | Generate scenario | AI | UC01 Start New Game | GameFacade, AgentOrchestrator, LLMClient, GameEngine | generateScenario(), generate(), setScenario() | SD01 | Facade, Adapter |
-| F02 | Auto-generate character | Deterministic | UC02 Create Character | GameFacade, CharacterFactory, CharacterClass | createCharacter(), createFromClass() | SD02 | Facade, Factory Method |
+| F02 | Auto-generate character (class-typical stats) | Deterministic | UC02 Create Character | GameFacade, CharacterFactory, CharacterClass | createCharacter(), createFromClass(), defaultStats() | SD02 | Facade, Factory Method |
+| F03 | Manual stat allocation | Deterministic | UC02 Create Character | GameFacade, CharacterFactory | createCharacter(), createCustom() | SD02 | Facade, Factory Method |
+| F04 | Manage party (1 to 4 characters) | Deterministic | UC03 Manage Party | GameFacade, Party | addCharacter(), removeCharacter(), isValidSize() | SD02 | Facade |
+| F05 | Generate next story event | AI | UC06 Advance Story | GameFacade, AgentOrchestrator, LLMClient, MemoryManager, GameState | generateNextEvent(), generate(), getContext() | SD03 | Facade, Adapter |
+| F06 | Take a turn (player chooses an action) | Hybrid | UC04 Take a Turn | GameFacade, AgentOrchestrator, LLMClient, GameEngine, Action | interpretAction(), generate(), validate() | SD03 | Facade, Adapter, Command |
+| F07 | Ability check | Deterministic | UC05 Resolve Dice Roll | GameEngine, RuleEngine | resolveAction(), rollAbilityCheck() | SD03 | — |
+| F08 | Attack roll | Deterministic | UC05 Resolve Dice Roll | GameEngine, RuleEngine | resolveAction(), rollAttack() | SD03 | — |
+| F09 | Damage roll | Deterministic | UC05 Resolve Dice Roll | GameEngine, RuleEngine, Character | rollDamage(), applyDamage() | SD03 | — |
+| F10 | Saving throw | Deterministic | UC05 Resolve Dice Roll | GameEngine, RuleEngine, Character | rollSavingThrow(), applyDamage() | SD03 | — |
+| F11 | Narrate outcome and advance the story | AI | UC06 Advance Story | GameFacade, AgentOrchestrator, LLMClient, GameState | narrateOutcome(), generate() | SD03 | Facade, Adapter |
+| F12 | Story memory | Hybrid | UC06 Advance Story | AgentOrchestrator, MemoryManager | addEvent(), getContext(), summarizeOld() | SD03 | — |
+| F13 | Detect end of game (defeat or victory) | Hybrid | UC07 End Game | GameFacade, GameEngine, AgentOrchestrator, LLMClient, GamePhase | checkEndCondition(), generateEnding(), advancePhase() | SD03 | Facade, State |
+| F14 | Save/load game | Deterministic | UC08 Save Game, UC09 Load Game | GameFacade, GameState, SaveRepository | createSnapshot(), save(), load(), restore() | SD04 | Facade, Memento |
 
