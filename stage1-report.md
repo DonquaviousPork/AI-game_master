@@ -156,7 +156,7 @@ AI Involvement: Deterministic.
 Expected Workflow: 1) Player chooses Save or Load. 2) On save, GameState produces a snapshot and SaveRepository writes it. 3) On load, SaveRepository reads the snapshot and GameState is rebuilt from it. 4) The game resumes from that point.
 Error/Alternative Cases: Write failure → show an error, game continues unsaved. Load failure or corrupted file → show an error, don't overwrite the current session, let the player choose another slot.
 
-**--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------**
+**-------------------------------------------------------------------------------------------------------------------------------------------------------**
 
 
 **Class Diagram:**
@@ -265,6 +265,7 @@ Why it's appropriate: Save/load needs to capture a complete, consistent copy of 
 
 What would be harder without it: SaveRepository would need direct knowledge of every field inside GameState, Party, and Character to serialize and restore them correctly, meaning any future change to those internal structures would risk breaking the save system too.
 
+**-------------------------------------------------------------------------------------------------------------------------------------------------------**
 
 **Use Case Diagram: **
 
@@ -369,7 +370,7 @@ Alternative/Exception Flows: If the file is missing or corrupted, the system sho
 Postconditions: GameState reflects the restored snapshot.
 Related Feature(s): F14.
 
-**--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------**
+**-------------------------------------------------------------------------------------------------------------------------------------------------------**
 
 
 **Sequence Diagram 1: Use Case 1**
