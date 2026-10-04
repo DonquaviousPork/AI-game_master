@@ -377,4 +377,21 @@ Related Feature(s): F14.
 
 <img width="8192" height="5363" alt="Untitled diagram-2026-10-04-222626" src="https://github.com/user-attachments/assets/c00b5bd2-24a0-4714-84f6-02e2112f8157" />
 
+**Sequence Diagram 2: Use Case 2, 3**
+
+<img width="6955" height="7015" alt="image" src="https://github.com/user-attachments/assets/62551d4e-47af-4e38-ad8c-5125dac5f4b0" />
+
+**Sequence Diagram 3: Use Cases 4, 5, 6, 7**
+
+<img width="7213" height="8192" alt="image" src="https://github.com/user-attachments/assets/790ebc70-c30c-4395-8ae2-90a534c550ff" />
+
+**Sequence Diagram 4: Use Cases 8, 9**
+
+<img width="6720" height="7885" alt="image" src="https://github.com/user-attachments/assets/3b6efa0a-43da-4518-b4d9-265f64ae921c" />
+
+
+
+
+
+
 
