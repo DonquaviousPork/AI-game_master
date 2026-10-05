@@ -22,7 +22,7 @@ This game takes heavy inspiration from Dungeons & Dragons. It is a single player
 
 **Feature Specification**
 
-F01 — Generate Scenario
+_F01 — Generate Scenario_
 
 Description: The AI creates a starting scenario that establishes the goal (win-condition) and the central conflict. Generated once, when the player starts a new game.
 User Interaction: Player selects "New Game." Generation happens automatically and the scenario is displayed before character creation begins.
@@ -39,7 +39,7 @@ Error/Alternative Cases: If the AI response is malformed or missing a clear win-
 
 
 
-F02 — Auto-Generate Character
+_F02 — Auto-Generate Character_
 
 Description: The player chooses a predefined character class, which comes with a fixed default stat allocation.
 
@@ -57,7 +57,7 @@ Error/Alternative Cases: If the party is already at 4 characters, the system blo
 
 
 
-F03 — Manual Stat Allocation
+_F03 — Manual Stat Allocation_
 
 Description: If the player wants to customize their character, they manually allocate stat points themselves out of a fixed pool.
 
@@ -75,7 +75,7 @@ Error/Alternative Cases: If the player allocates more or fewer points than the p
 
 
 
-F04 — Manage Party (1 to 4 Characters)
+_F04 — Manage Party (1 to 4 Characters)_
 
 Description: Allows the player to add new characters to the party or remove existing ones, keeping the party between 1 and 4 characters.
 
@@ -93,7 +93,7 @@ Error/Alternative Cases: Attempting to add a 5th character or remove the last re
 
 
 
-F05 — Generate Next Story Event
+_F05 — Generate Next Story Event_
 
 Description: After the player clears an event, the AI generates the next event, moving the story closer to its conclusion.
 
@@ -110,8 +110,8 @@ Expected Workflow: 1) Current event is marked resolved. 2) AgentOrchestrator req
 Error/Alternative Cases: If the generated event is malformed or disconnected from the current state, the system retries or falls back to a generic transitional event.
 
 
-
-F06 — Take a Turn (Player Chooses an Action)
+_
+F06 — Take a Turn (Player Chooses an Action)_
 
 Description: During an event, each character gets a turn to perform an action, one character at a time.
 
@@ -129,7 +129,7 @@ Error/Alternative Cases: If the action is invalid (e.g. targets something that d
 
 
 
-F07 — Ability Check
+_F07 — Ability Check_
 
 Description: Some actions require a skill check. The system sets a minimum roll needed; the player rolls a die and adds the relevant stat modifier. Meeting or exceeding the minimum succeeds.
 
@@ -147,7 +147,7 @@ Error/Alternative Cases: If the required stat or difficulty is missing or invali
 
 
 
-F08 — Attack Roll
+_F08 — Attack Roll_
 
 Description: When a character attacks, the system rolls a die, adds the character's relevant modifier, and compares it to the target's armor class. Meeting or exceeding it results in a hit, proceeding to a damage roll.
 
@@ -165,7 +165,7 @@ Error/Alternative Cases: If the target has no valid armor class or is already de
 
 
 
-F09 — Damage Roll
+_F09 — Damage Roll_
 
 Description: When an attack lands, a die is rolled to determine how much health the target loses.
 
@@ -183,7 +183,7 @@ Error/Alternative Cases: If health would go below 0, it's floored at 0 rather th
 
 
 
-F10 — Saving Throw
+_F10 — Saving Throw_
 
 Description: When a character is targeted by an attack or ability that can be avoided, they roll a die for a chance to reduce or negate the effect.
 
@@ -201,7 +201,7 @@ Error/Alternative Cases: If no difficulty value was provided with the triggering
 
 
 
-F11 — Narrate Outcome and Advance the Story
+_F11 — Narrate Outcome and Advance the Story_
 
 Description: After a turn's rolls are resolved, the AI describes what happened in natural language and introduces the next development in the story.
 
@@ -219,7 +219,7 @@ Error/Alternative Cases: If the narration contradicts the actual resolved outcom
 
 
 
-F12 — Story Memory
+_F12 — Story Memory_
 
 Description: Keeps a running record of what has happened in the story so the AI game master stays consistent.
 
@@ -237,7 +237,7 @@ Error/Alternative Cases: If the history exceeds the model's input limit, older e
 
 
 
-F13 — Detect End of Game (Defeat or Victory)
+_F13 — Detect End of Game (Defeat or Victory)_
 
 Description: After each event, the system checks whether an end-game condition has been met — either the win-condition was achieved or all characters died — and writes an appropriate conclusion.
 
@@ -255,7 +255,7 @@ Error/Alternative Cases: If the AI's narration implies victory but GameState doe
 
 
 
-F14 — Save/Load Game
+_F14 — Save/Load Game_
 
 Description: Saves the complete current game to storage so the player can resume exactly where they left off.
 
