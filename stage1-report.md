@@ -380,7 +380,8 @@ Related Feature(s): F14.
 
 **Sequence Diagram 2: Use Case 2, 3**
 
-<img width="6955" height="7015" alt="image" src="https://github.com/user-attachments/assets/62551d4e-47af-4e38-ad8c-5125dac5f4b0" />
+<img width="5635" height="8191" alt="image" src="https://github.com/user-attachments/assets/6eff3d45-f1fb-4709-b6f5-79716db63472" />
+
 
 
 **Sequence Diagram 3: Use Cases 4, 5, 6, 7**
