@@ -277,7 +277,7 @@ Why it's appropriate: Save/load needs to capture a complete, consistent copy of 
 What would be harder without it: SaveRepository would need direct knowledge of every field inside GameState, Party, and Character to serialize and restore them correctly, meaning any future change to those internal structures would risk breaking the save system too.
 
 
-7. _Factory_
+7. _Factory Method_
 
 Design problem it addresses: Character creation needs to produce fully-formed Character objects in two different ways — from a predefined class's default stats, or from a player's manual stat allocation — without the calling code (GameFacade) needing to know the construction details or validation logic for either case.
 
