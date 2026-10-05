@@ -110,8 +110,8 @@ Expected Workflow: 1) Current event is marked resolved. 2) AgentOrchestrator req
 Error/Alternative Cases: If the generated event is malformed or disconnected from the current state, the system retries or falls back to a generic transitional event.
 
 
-_
-F06 — Take a Turn (Player Chooses an Action)_
+
+_F06 — Take a Turn (Player Chooses an Action)_
 
 Description: During an event, each character gets a turn to perform an action, one character at a time.
 
