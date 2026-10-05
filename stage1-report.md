@@ -170,7 +170,8 @@ Error/Alternative Cases: Write failure → show an error, game continues unsaved
 
 **Class Diagram:**
 
-<img width="8191" height="3482" alt="Untitled diagram-2026-10-04-220915" src="https://github.com/user-attachments/assets/99740dcb-abd8-4438-a60e-415c005396e5" />
+<img width="8191" height="3482" alt="image" src="https://github.com/user-attachments/assets/e4ac0f8d-bff8-43b0-a543-2b1595af2d7d" />
+
 
 
 1. _Facade_
