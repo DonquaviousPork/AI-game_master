@@ -21,7 +21,7 @@ This game takes heavy inspiration from Dungeons & Dragons. It is a single player
 **-------------------------------------------------------------------------------------------------------------------------------------------------------**
 
 **Feature Specification**
-
+           
 _F01 — Generate Scenario_
 
 Description: The AI creates a starting scenario that establishes the goal (win-condition) and the central conflict. Generated once, when the player starts a new game.
@@ -37,7 +37,7 @@ Expected Workflow: 1) Player starts a new game. 2) GameFacade requests scenario 
 
 Error/Alternative Cases: If the AI response is malformed or missing a clear win-condition, the system retries the request or falls back to a default template scenario.
 
-
+           
 
 _F02 — Auto-Generate Character_
 
@@ -55,7 +55,7 @@ Expected Workflow: 1) Player selects a class. 2) CharacterFactory looks up the f
 
 Error/Alternative Cases: If the party is already at 4 characters, the system blocks creation and informs the player (links to F04).
 
-
+           
 
 _F03 — Manual Stat Allocation_
 
@@ -73,7 +73,7 @@ Expected Workflow: 1) Player chooses manual allocation. 2) Player assigns points
 
 Error/Alternative Cases: If the player allocates more or fewer points than the pool allows, or exceeds a stat's maximum, the system rejects the submission and prompts for a correction.
 
-
+           
 
 _F04 — Manage Party (1 to 4 Characters)_
 
@@ -91,7 +91,7 @@ Expected Workflow: 1) Player adds or removes a character. 2) Party validates the
 
 Error/Alternative Cases: Attempting to add a 5th character or remove the last remaining character is blocked, with a message explaining the limit.
 
-
+           
 
 _F05 — Generate Next Story Event_
 
@@ -109,7 +109,7 @@ Expected Workflow: 1) Current event is marked resolved. 2) AgentOrchestrator req
 
 Error/Alternative Cases: If the generated event is malformed or disconnected from the current state, the system retries or falls back to a generic transitional event.
 
-
+           
 
 _F06 — Take a Turn (Player Chooses an Action)_
 
@@ -127,7 +127,7 @@ Expected Workflow: 1) System indicates whose turn it is. 2) Player submits an ac
 
 Error/Alternative Cases: If the action is invalid (e.g. targets something that doesn't exist, or the character is incapacitated), the system rejects it and asks the player to choose again.
 
-
+           
 
 _F07 — Ability Check_
 
@@ -145,7 +145,7 @@ Expected Workflow: 1) Action requires a check. 2) RuleEngine rolls a die, adds t
 
 Error/Alternative Cases: If the required stat or difficulty is missing or invalid, the engine rejects the check and requests clarification from the AI's proposed action before proceeding.
 
-
+           
 
 _F08 — Attack Roll_
 
@@ -163,7 +163,7 @@ Expected Workflow: 1) Player's action resolves to an attack. 2) RuleEngine rolls
 
 Error/Alternative Cases: If the target has no valid armor class or is already defeated, the attack is rejected before rolling.
 
-
+           
 
 _F09 — Damage Roll_
 
@@ -181,7 +181,7 @@ Expected Workflow: 1) F08 results in a hit. 2) RuleEngine rolls the weapon's dam
 
 Error/Alternative Cases: If health would go below 0, it's floored at 0 rather than going negative.
 
-
+           
 
 _F10 — Saving Throw_
 
@@ -199,7 +199,7 @@ Expected Workflow: 1) An attack or ability allows a save. 2) RuleEngine rolls a 
 
 Error/Alternative Cases: If no difficulty value was provided with the triggering effect, the save defaults to a standard difficulty rather than failing outright.
 
-
+           
 
 _F11 — Narrate Outcome and Advance the Story_
 
@@ -217,7 +217,7 @@ Expected Workflow: 1) Rolls for the turn are resolved. 2) AgentOrchestrator send
 
 Error/Alternative Cases: If the narration contradicts the actual resolved outcome (e.g. wrong result stated), the narration is discarded and regenerated or replaced with a simple templated description.
 
-
+           
 
 _F12 — Story Memory_
 
@@ -235,7 +235,7 @@ Expected Workflow: 1) Each event/turn outcome is appended to memory. 2) When con
 
 Error/Alternative Cases: If the history exceeds the model's input limit, older events are summarized or truncated, prioritizing recent events and the win-condition.
 
-
+           
 
 _F13 — Detect End of Game (Defeat or Victory)_
 
@@ -253,7 +253,7 @@ Expected Workflow: 1) After an event resolves, GameEngine checks if all characte
 
 Error/Alternative Cases: If the AI's narration implies victory but GameState doesn't confirm the win-condition is met, the engine does not end the game — its own check is authoritative.
 
-
+           
 
 _F14 — Save/Load Game_
 
@@ -271,7 +271,7 @@ Expected Workflow: 1) Player chooses Save or Load. 2) On save, GameState produce
 
 Error/Alternative Cases: Write failure → show an error, game continues unsaved. Load failure or corrupted file → show an error, don't overwrite the current session, let the player choose another slot.
 
-
+           
 
 **-------------------------------------------------------------------------------------------------------------------------------------------------------**
 
