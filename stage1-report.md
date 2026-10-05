@@ -278,6 +278,7 @@ What would be harder without it: SaveRepository would need direct knowledge of e
 
 
 7. _Factory_
+
 Design problem it addresses: Character creation needs to produce fully-formed Character objects in two different ways — from a predefined class's default stats, or from a player's manual stat allocation — without the calling code (GameFacade) needing to know the construction details or validation logic for either case.
 
 Participating classes: CharacterFactory, CharacterClass (and its subclasses FighterClass, WizardClass, RogueClass), Character.
