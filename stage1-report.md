@@ -277,7 +277,7 @@ Why it's appropriate: Save/load needs to capture a complete, consistent copy of 
 What would be harder without it: SaveRepository would need direct knowledge of every field inside GameState, Party, and Character to serialize and restore them correctly, meaning any future change to those internal structures would risk breaking the save system too.
 
 
-7. _Factory Method_
+7. _Factory_
 
 Design problem it addresses: Character creation needs to produce fully-formed Character objects in two different ways — from a predefined class's default stats, or from a player's manual stat allocation — without the calling code (GameFacade) needing to know the construction details or validation logic for either case.
 
@@ -434,7 +434,7 @@ Related Feature(s): F14.
 | Feature | Description | Type | Related Use Case | Classes | Key Methods | Sequence Diagram | Design Pattern(s) |
 |---|---|---|---|---|---|---|---|
 | F01 | Generate scenario | AI | UC01 Start New Game | GameFacade, AgentOrchestrator, LLMClient, GameEngine | generateScenario(), generate(), setScenario() | SD01 | Facade, Adapter |
-| F02 | Auto-generate character (class-typical stats) | Deterministic | UC02 Create Character | GameFacade, CharacterFactory, CharacterClass | createCharacter(), createFromClass(), defaultStats() | SD02 | Facade, Factory Method |
+| F02 | Auto-generate character (class-typical stats) | Deterministic | UC02 Create Character | GameFacade, CharacterFactory, CharacterClass | createCharacter(), createFromClass(), defaultStats() | SD02 | Facade, Factory |
 | F03 | Manual stat allocation | Deterministic | UC02 Create Character | GameFacade, CharacterFactory | createCharacter(), createCustom() | SD02 | Facade, Factory Method |
 | F04 | Manage party (1 to 4 characters) | Deterministic | UC03 Manage Party | GameFacade, Party | manageParty(), addCharacter(), removeCharacter(), isValidSize() | SD02 | Facade |
 | F05 | Generate next story event | AI | UC06 Advance Story | GameFacade, AgentOrchestrator, LLMClient, MemoryManager, GameState | generateNextEvent(), generate(), getContext() | SD03 | Facade, Adapter |
