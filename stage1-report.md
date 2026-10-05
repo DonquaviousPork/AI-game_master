@@ -276,6 +276,22 @@ Why it's appropriate: Save/load needs to capture a complete, consistent copy of 
 
 What would be harder without it: SaveRepository would need direct knowledge of every field inside GameState, Party, and Character to serialize and restore them correctly, meaning any future change to those internal structures would risk breaking the save system too.
 
+
+7. _Factory_
+Design problem it addresses: Character creation needs to produce fully-formed Character objects in two different ways — from a predefined class's default stats, or from a player's manual stat allocation — without the calling code (GameFacade) needing to know the construction details or validation logic for either case.
+
+Participating classes: CharacterFactory, CharacterClass (and its subclasses FighterClass, WizardClass, RogueClass), Character.
+
+Role of each class:
+
+CharacterFactory — exposes two creation methods, createFromClass(classType) and createCustom(statAllocations), and handles the construction and validation logic for each.
+CharacterClass — defines the default stat spread for a given class, used by createFromClass.
+Character — the object being constructed; neither GameFacade nor the player-facing code constructs it directly.
+
+Why it's appropriate: Character creation has two distinct construction processes (auto-generated vs. manually allocated) that both need to produce a valid Character, with different validation rules for each. Centralizing this in a factory means GameFacade stays simple — it just asks for a character and gets one back, without embedding either construction process itself.
+
+What would be harder without it: Without a factory, GameFacade (or the GUI) would need to contain the logic for looking up class-default stats and separately for validating manual point allocations, mixing creation/validation logic into the front-door class instead of keeping it isolated. Adding a new character class later would also mean editing GameFacade directly instead of just adding a new CharacterClass subclass.
+
 **-------------------------------------------------------------------------------------------------------------------------------------------------------**
 
 **Use Case Diagram: **
