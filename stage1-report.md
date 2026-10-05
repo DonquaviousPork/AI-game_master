@@ -22,7 +22,7 @@ This game takes heavy inspiration from Dungeons & Dragons. It is a single player
 
 **Feature Specification**
            
-_F01 — Generate Scenario_
+1. _F01 — Generate Scenario_
 
 Description: The AI creates a starting scenario that establishes the goal (win-condition) and the central conflict. Generated once, when the player starts a new game.
 User Interaction: Player selects "New Game." Generation happens automatically and the scenario is displayed before character creation begins.
@@ -39,7 +39,7 @@ Error/Alternative Cases: If the AI response is malformed or missing a clear win-
 
            
 
-_F02 — Auto-Generate Character_
+2. _F02 — Auto-Generate Character_
 
 Description: The player chooses a predefined character class, which comes with a fixed default stat allocation.
 
@@ -57,7 +57,7 @@ Error/Alternative Cases: If the party is already at 4 characters, the system blo
 
            
 
-_F03 — Manual Stat Allocation_
+3. _F03 — Manual Stat Allocation_
 
 Description: If the player wants to customize their character, they manually allocate stat points themselves out of a fixed pool.
 
@@ -75,7 +75,7 @@ Error/Alternative Cases: If the player allocates more or fewer points than the p
 
            
 
-_F04 — Manage Party (1 to 4 Characters)_
+4. _F04 — Manage Party (1 to 4 Characters)_
 
 Description: Allows the player to add new characters to the party or remove existing ones, keeping the party between 1 and 4 characters.
 
@@ -93,7 +93,7 @@ Error/Alternative Cases: Attempting to add a 5th character or remove the last re
 
            
 
-_F05 — Generate Next Story Event_
+5. _F05 — Generate Next Story Event_
 
 Description: After the player clears an event, the AI generates the next event, moving the story closer to its conclusion.
 
@@ -111,7 +111,7 @@ Error/Alternative Cases: If the generated event is malformed or disconnected fro
 
            
 
-_F06 — Take a Turn (Player Chooses an Action)_
+6. _F06 — Take a Turn (Player Chooses an Action)_
 
 Description: During an event, each character gets a turn to perform an action, one character at a time.
 
@@ -129,7 +129,7 @@ Error/Alternative Cases: If the action is invalid (e.g. targets something that d
 
            
 
-_F07 — Ability Check_
+7. _F07 — Ability Check_
 
 Description: Some actions require a skill check. The system sets a minimum roll needed; the player rolls a die and adds the relevant stat modifier. Meeting or exceeding the minimum succeeds.
 
@@ -147,7 +147,7 @@ Error/Alternative Cases: If the required stat or difficulty is missing or invali
 
            
 
-_F08 — Attack Roll_
+8. _F08 — Attack Roll_
 
 Description: When a character attacks, the system rolls a die, adds the character's relevant modifier, and compares it to the target's armor class. Meeting or exceeding it results in a hit, proceeding to a damage roll.
 
@@ -165,7 +165,7 @@ Error/Alternative Cases: If the target has no valid armor class or is already de
 
            
 
-_F09 — Damage Roll_
+9. _F09 — Damage Roll_
 
 Description: When an attack lands, a die is rolled to determine how much health the target loses.
 
@@ -183,7 +183,7 @@ Error/Alternative Cases: If health would go below 0, it's floored at 0 rather th
 
            
 
-_F10 — Saving Throw_
+10. _F10 — Saving Throw_
 
 Description: When a character is targeted by an attack or ability that can be avoided, they roll a die for a chance to reduce or negate the effect.
 
@@ -201,7 +201,7 @@ Error/Alternative Cases: If no difficulty value was provided with the triggering
 
            
 
-_F11 — Narrate Outcome and Advance the Story_
+11. _F11 — Narrate Outcome and Advance the Story_
 
 Description: After a turn's rolls are resolved, the AI describes what happened in natural language and introduces the next development in the story.
 
@@ -219,7 +219,7 @@ Error/Alternative Cases: If the narration contradicts the actual resolved outcom
 
            
 
-_F12 — Story Memory_
+12. _F12 — Story Memory_
 
 Description: Keeps a running record of what has happened in the story so the AI game master stays consistent.
 
@@ -237,7 +237,7 @@ Error/Alternative Cases: If the history exceeds the model's input limit, older e
 
            
 
-_F13 — Detect End of Game (Defeat or Victory)_
+13. _F13 — Detect End of Game (Defeat or Victory)_
 
 Description: After each event, the system checks whether an end-game condition has been met — either the win-condition was achieved or all characters died — and writes an appropriate conclusion.
 
@@ -255,7 +255,7 @@ Error/Alternative Cases: If the AI's narration implies victory but GameState doe
 
            
 
-_F14 — Save/Load Game_
+14. _F14 — Save/Load Game_
 
 Description: Saves the complete current game to storage so the player can resume exactly where they left off.
 
@@ -631,248 +631,354 @@ Related Feature(s): F14.
 
 
 1. _F01 — Generate Scenario_
+
 Related Use Case: UC01 — Start New Game
+
 Related Sequence Diagram: SD01 — Start New Game
+
 Classes involved:
 
-GameView — displays the "New Game" option and shows the generated scenario to the player.
-GameFacade — receives the request and routes it to the AI layer.
-AgentOrchestrator — coordinates the generation request and converts the model's response into a Scenario object.
-LLMClient — communicates with the selected LLM to produce the scenario text.
-GameEngine — stores the finished scenario in the game state.
+           GameView — displays the "New Game" option and shows the generated scenario to the player.
+           
+           GameFacade — receives the request and routes it to the AI layer.
+           
+           AgentOrchestrator — coordinates the generation request and converts the model's response into a Scenario object.
+           
+           LLMClient — communicates with the selected LLM to produce the scenario text.
+           
+           GameEngine — stores the finished scenario in the game state.
 
 Important methods:
 
-GameFacade.generateScenario()
-AgentOrchestrator.generateScenario()
-LLMClient.generate()
-GameEngine.setScenario()
+           GameFacade.generateScenario()
+           
+           AgentOrchestrator.generateScenario()
+           
+           LLMClient.generate()
+           
+           GameEngine.setScenario()
 
 Execution: When the player selects "New Game," GameFacade.generateScenario() forwards the request to AgentOrchestrator, which calls LLMClient.generate() to produce a premise and win-condition. If the response is incomplete or malformed, the orchestrator retries once and falls back to a default template scenario if needed. The resulting Scenario is passed to GameEngine.setScenario() and displayed to the player, after which character creation begins.
 
 2. _F02 — Auto-Generate Character (Class-Typical Stats)_
+
 Related Use Case: UC02 — Create Character
+
 Related Sequence Diagram: SD02 — Create Character and Manage Party
+
 Classes involved:
 
-GameView — presents the list of character classes.
-GameFacade — receives the creation request.
-CharacterFactory — builds the character using a fixed stat spread.
-CharacterClass — defines the default stats for a given class.
+           GameView — presents the list of character classes.
+           
+           GameFacade — receives the creation request.
+           
+           CharacterFactory — builds the character using a fixed stat spread.
+           
+           CharacterClass — defines the default stats for a given class.
 
 Important methods:
 
-GameFacade.createCharacter()
-CharacterFactory.createFromClass()
-CharacterClass.defaultStats()
+           GameFacade.createCharacter()
+           
+           CharacterFactory.createFromClass()
+           
+           CharacterClass.defaultStats()
 
 Execution: When the player selects a class, GameFacade.createCharacter() passes the choice to CharacterFactory.createFromClass(), which looks up that class's defaultStats() and builds a new Character with those values. The character is returned to the facade, ready to be added to the party (F04).
 
 3. _F03 — Manual Stat Allocation_
+   
 Related Use Case: UC02 — Create Character
+
 Related Sequence Diagram: SD02 — Create Character and Manage Party
+
 Classes involved:
 
-GameView — lets the player assign points to each stat.
-GameFacade — receives the allocation.
-CharacterFactory — validates and builds the character from the player's input.
+           GameView — lets the player assign points to each stat.
+           
+           GameFacade — receives the allocation.
+           
+           CharacterFactory — validates and builds the character from the player's input.
 
 Important methods:
 
-GameFacade.createCharacter()
-CharacterFactory.createCustom()
+           GameFacade.createCharacter()
+           
+           CharacterFactory.createCustom()
 
 Execution: When the player manually allocates stats, GameFacade.createCharacter() passes the allocations to CharacterFactory.createCustom(), which checks that the total matches the allowed point pool and no stat exceeds its maximum. If the allocation is invalid, a validation error is returned and the player is prompted to correct it; otherwise, a new Character is built and returned.
 
-4. F04 — Manage Party (1 to 4 Characters) (updated)
+4. F04 — Manage Party (1 to 4 Characters)
+
 Related Use Case: UC03 — Manage Party
+
 Related Sequence Diagram: SD02 — Create Character and Manage Party
+
 Classes involved:
 
-GameView — provides add/remove controls.
-GameFacade — receives the request and routes it to Party.
-Party — holds the characters and enforces the size limit.
+           GameView — provides add/remove controls.
+           
+           GameFacade — receives the request and routes it to Party.
+           
+           Party — holds the characters and enforces the size limit.
 
 Important methods:
 
-GameFacade.manageParty()
-Party.addCharacter()
-Party.removeCharacter()
-Party.isValidSize()
+           GameFacade.manageParty()
+           
+           Party.addCharacter()
+           
+           Party.removeCharacter()
+           
+           Party.isValidSize()
 
 Execution: After a character is created (F02 or F03), or when the player chooses to remove one, the request is routed through GameFacade.manageParty(action, character), which calls Party.addCharacter() or Party.removeCharacter() accordingly. The party checks isValidSize() before accepting the change — additions are rejected if the party already has 4 characters, and removals are rejected if the party would drop below 1, with an error shown to the player in either case.
 
 5. _F05 — Generate Next Story Event_
+
 Related Use Case: UC06 — Advance Story
+
 Related Sequence Diagram: SD03 — Take a Turn, Resolve Rolls, Advance Story, End Game
+
 Classes involved:
 
-GameFacade — coordinates the request once a turn cycle completes.
-AgentOrchestrator — requests and processes the next event.
-LLMClient — generates the event content.
-MemoryManager — supplies relevant story context.
-GameEngine — stores the new current event.
+           GameFacade — coordinates the request once a turn cycle completes.
+           
+           AgentOrchestrator — requests and processes the next event.
+
+           LLMClient — generates the event content.
+           
+           MemoryManager — supplies relevant story context.
+           
+           GameEngine — stores the new current event.
 
 Important methods:
 
-AgentOrchestrator.generateNextEvent()
-MemoryManager.getContext()
-LLMClient.generate()
-GameEngine.setCurrentEvent()
+           AgentOrchestrator.generateNextEvent()
+           
+           MemoryManager.getContext()
+           
+           LLMClient.generate()
+           
+           GameEngine.setCurrentEvent()
 
 Execution: Once all characters have acted, AgentOrchestrator.generateNextEvent() calls MemoryManager.getContext() to retrieve relevant story history, then passes that context to LLMClient.generate(). The resulting StoryEvent is passed to GameEngine.setCurrentEvent(), which stores it on GameState and displays it to the player, beginning the next turn cycle.
 
 6. _F06 — Take a Turn (Player Chooses an Action)_
+   
 Related Use Case: UC04 — Take a Turn
+
 Related Sequence Diagram: SD03 — Take a Turn, Resolve Rolls, Advance Story, End Game
+
 Classes involved:
 
-GameView — collects the player's action input.
-GameFacade — routes the request.
-AgentOrchestrator — interprets free-text input into a structured action.
-LLMClient — performs the interpretation.
-GameEngine — validates the resulting action.
-Action (and subclasses AttackAction, AbilityCheckAction, FleeAction) — represents the structured action.
-ActionHistory — records the action once it's validated.
+           GameView — collects the player's action input.
+           
+           GameFacade — routes the request.
+           
+           AgentOrchestrator — interprets free-text input into a structured action.
+           
+           LLMClient — performs the interpretation.
+           
+           GameEngine — validates the resulting action.
+           
+           Action (and subclasses AttackAction, AbilityCheckAction, FleeAction) — represents the structured action.
+           
+           ActionHistory — records the action once it's validated.
 
 Important methods:
 
-AgentOrchestrator.interpretAction()
-LLMClient.generate()
-GameEngine.validate()
-ActionHistory.record()
+           AgentOrchestrator.interpretAction()
+           
+           LLMClient.generate()
+           
+           GameEngine.validate()
+           
+           ActionHistory.record()
 
 Execution: When the player submits an action, AgentOrchestrator.interpretAction() sends the text to LLMClient.generate(), which returns a structured Action object. GameEngine.validate() checks whether the action is legal given the current state; if not, the player is asked to choose again. If valid, ActionHistory.record() logs the action before it proceeds to roll resolution (F07–F10), giving the system a persistent record of the turn.
 
 7. _F07 — Ability Check_
+   
 Related Use Case: UC05 — Resolve Dice Roll
+
 Related Sequence Diagram: SD03 — Take a Turn, Resolve Rolls, Advance Story, End Game
+
 Classes involved:
 
-GameEngine — triggers the check as part of resolving an action.
-RuleEngine — performs the roll.
+           GameEngine — triggers the check as part of resolving an action.
+           
+           RuleEngine — performs the roll.
 
 Important methods:
 
-GameEngine.resolveAction()
-RuleEngine.rollAbilityCheck()
+           GameEngine.resolveAction()
+           
+           RuleEngine.rollAbilityCheck()
 
 Execution: When an action requires a skill check, GameEngine.resolveAction() calls RuleEngine.rollAbilityCheck(), which rolls a die, adds the character's relevant stat modifier, and compares the total to the required difficulty. The success or failure result is returned to the engine for further resolution.
 
 8. _F08 — Attack Roll_
+   
 Related Use Case: UC05 — Resolve Dice Roll
+
 Related Sequence Diagram: SD03 — Take a Turn, Resolve Rolls, Advance Story, End Game
+
 Classes involved:
 
-GameEngine — triggers the roll.
-RuleEngine — performs the calculation.
+           GameEngine — triggers the roll.
+           
+           RuleEngine — performs the calculation.
 
 Important methods:
 
-GameEngine.resolveAction()
-RuleEngine.rollAttack()
+           GameEngine.resolveAction()
+           
+           RuleEngine.rollAttack()
 
 Execution: When a character attacks, GameEngine.resolveAction() calls RuleEngine.rollAttack(), which rolls a die, adds the attacker's relevant modifier, and compares the result to the target's armor class. A result meeting or exceeding the armor class produces a hit and proceeds to the damage roll (F09); otherwise, the attack misses.
 
 9. _F09 — Damage Roll_
+    
 Related Use Case: UC05 — Resolve Dice Roll
+
 Related Sequence Diagram: SD03 — Take a Turn, Resolve Rolls, Advance Story, End Game
+
 Classes involved:
 
-GameEngine — triggers the roll after a successful hit.
-RuleEngine — performs the calculation.
-Character — the target whose health is reduced.
+           GameEngine — triggers the roll after a successful hit.
+           
+           RuleEngine — performs the calculation.
+           
+           Character — the target whose health is reduced.
 
 Important methods:
 
-RuleEngine.rollDamage()
-Character.applyDamage()
+           RuleEngine.rollDamage()
+           
+           Character.applyDamage()
 
 Execution: Following a successful attack roll, GameEngine calls RuleEngine.rollDamage(), which rolls the weapon's damage die and adds the relevant modifier. The resulting amount is passed directly to Character.applyDamage() on the target, reducing its current health, with health floored at 0.
 
 10. _F10 — Saving Throw_
+    
 Related Use Case: UC05 — Resolve Dice Roll
+
 Related Sequence Diagram: SD03 — Take a Turn, Resolve Rolls, Advance Story, End Game
+
 Classes involved:
 
-GameEngine — triggers the save when an effect allows one.
-RuleEngine — performs the roll.
-Character — the target attempting to resist the effect.
+           GameEngine — triggers the save when an effect allows one.
+           
+           RuleEngine — performs the roll.
+           
+           Character — the target attempting to resist the effect.
 
 Important methods:
 
-RuleEngine.rollSavingThrow()
-Character.applyDamage()
+           RuleEngine.rollSavingThrow()
+           
+           Character.applyDamage()
 
 Execution: When a character is targeted by an attack or ability that allows a save, GameEngine calls RuleEngine.rollSavingThrow(), which rolls a die and adds the target's relevant stat modifier against the effect's difficulty value. On success, the effect is reduced or negated; on failure, it is applied in full, potentially invoking Character.applyDamage().
 
 11. _F11 — Narrate Outcome and Advance the Story_
+    
 Related Use Case: UC06 — Advance Story
+
 Related Sequence Diagram: SD03 — Take a Turn, Resolve Rolls, Advance Story, End Game
+
 Classes involved:
 
-GameFacade — coordinates the narration request.
-AgentOrchestrator — requests and validates the narration.
-LLMClient — generates the narration text.
-GameState — the source of truth the narration is checked against.
+           GameFacade — coordinates the narration request.
+           
+           AgentOrchestrator — requests and validates the narration.
+           
+           LLMClient — generates the narration text.
+           
+           GameState — the source of truth the narration is checked against.
 
 Important methods:
 
-AgentOrchestrator.narrateOutcome()
-LLMClient.generate()
+           AgentOrchestrator.narrateOutcome()
+           
+           LLMClient.generate()
 
 Execution: After a turn's rolls are resolved, AgentOrchestrator.narrateOutcome() sends the outcome and current state to LLMClient.generate(), which returns narration text. The orchestrator checks the narration against GameState for consistency; if it contradicts the actual resolved outcome, it is discarded and regenerated or replaced with a templated description before being shown to the player.
 
 12. _F12 — Story Memory_
+    
 Related Use Case: UC06 — Advance Story
+
 Related Sequence Diagram: SD03 — Take a Turn, Resolve Rolls, Advance Story, End Game
+
 Classes involved:
 
-GameFacade — records each resolved turn.
-MemoryManager — stores and supplies story history.
-AgentOrchestrator — retrieves context for generation.
+           GameFacade — records each resolved turn.
+           
+           MemoryManager — stores and supplies story history.
+           
+           AgentOrchestrator — retrieves context for generation.
 
 Important methods:
 
-MemoryManager.addEvent()
-MemoryManager.getContext()
-MemoryManager.summarizeOld()
+           MemoryManager.addEvent()
+           
+           MemoryManager.getContext()
+           
+           MemoryManager.summarizeOld()
 
 Execution: After each turn is narrated, GameFacade calls MemoryManager.addEvent() to record the outcome. When generating the next event or narration (F05, F11), AgentOrchestrator calls MemoryManager.getContext() to retrieve relevant recent history; if the history grows too long for the model's input limit, summarizeOld() compresses older events so recent ones stay detailed.
 
 13. _F13 — Detect End of Game (Defeat or Victory)_
+    
 Related Use Case: UC07 — End Game
+
 Related Sequence Diagram: SD03 — Take a Turn, Resolve Rolls, Advance Story, End Game
+
 Classes involved:
 
-GameEngine — checks the end condition.
-AgentOrchestrator — generates the concluding narration.
-LLMClient — produces the ending text.
-GamePhase — transitions to EndedPhase.
+           GameEngine — checks the end condition.
+           
+           AgentOrchestrator — generates the concluding narration.
+           
+           LLMClient — produces the ending text.
+           
+           GamePhase — transitions to EndedPhase.
 
 Important methods:
 
-GameEngine.checkEndCondition()
-AgentOrchestrator.generateEnding()
-GameEngine.advancePhase()
+           GameEngine.checkEndCondition()
+           
+           AgentOrchestrator.generateEnding()
+           
+           GameEngine.advancePhase()
 
 Execution: After each event resolves, GameEngine.checkEndCondition() checks whether all characters have died or the win-condition is complete. If so, AgentOrchestrator.generateEnding() requests a concluding narration from the LLM, and GameEngine.advancePhase() transitions the game into EndedPhase. The engine's own check is authoritative — if the AI's narration implies victory without the state confirming it, the game does not end.
 
 14. _F14 — Save/Load Game_
+    
 Related Use Case: UC08 — Save Game, UC09 — Load Game
-Related Sequence Diagram: SD04 — Save and Load Game
-Classes involved:
 
-GameFacade — coordinates the save/load request.
-GameState — creates and restores its own snapshot.
-SaveRepository — persists and retrieves the snapshot.
+Related Sequence Diagram: SD04 — Save and Load Game
+
+Classes involved:
+           
+           GameFacade — coordinates the save/load request.
+           
+           GameState — creates and restores its own snapshot.
+           
+           SaveRepository — persists and retrieves the snapshot.
 
 Important methods:
 
-GameState.createSnapshot()
-SaveRepository.save()
-SaveRepository.load()
-GameState.restore()
+           GameState.createSnapshot()
+           
+           SaveRepository.save()
+           
+           SaveRepository.load()
+           
+           GameState.restore()
 
 Execution: On save, GameFacade.saveGame() calls GameState.createSnapshot() to produce a GameSnapshot, which SaveRepository.save() writes to storage; a write failure shows an error without losing the current session. On load, SaveRepository.load() retrieves the snapshot, and GameState.restore() rebuilds the game from it; a missing or corrupted file shows an error and preserves the current session rather than overwriting it.
 
