@@ -170,7 +170,8 @@ Error/Alternative Cases: Write failure → show an error, game continues unsaved
 
 **Class Diagram:**
 
-<img width="8191" height="3482" alt="image" src="https://github.com/user-attachments/assets/e4ac0f8d-bff8-43b0-a543-2b1595af2d7d" />
+<img width="8191" height="3482" alt="Game Action Resolution Flow-2026-10-05-002617" src="https://github.com/user-attachments/assets/9ea59257-4995-4006-a6f1-b1f5ddf47259" />
+
 
 
 
