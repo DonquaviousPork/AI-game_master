@@ -397,7 +397,8 @@ Related Feature(s): F14.
 
 **Sequence Diagram 3: Use Cases 4, 5, 6, 7**
 
-<img width="7095" height="8192" alt="image" src="https://github.com/user-attachments/assets/39984c83-bad9-4363-91f7-fe2a80ff78ca" />
+<img width="7241" height="8192" alt="image" src="https://github.com/user-attachments/assets/bc1f5854-091a-4db9-92f4-89865c680fa9" />
+
 
 
 
@@ -418,9 +419,9 @@ Related Feature(s): F14.
 | F01 | Generate scenario | AI | UC01 Start New Game | GameFacade, AgentOrchestrator, LLMClient, GameEngine | generateScenario(), generate(), setScenario() | SD01 | Facade, Adapter |
 | F02 | Auto-generate character (class-typical stats) | Deterministic | UC02 Create Character | GameFacade, CharacterFactory, CharacterClass | createCharacter(), createFromClass(), defaultStats() | SD02 | Facade, Factory Method |
 | F03 | Manual stat allocation | Deterministic | UC02 Create Character | GameFacade, CharacterFactory | createCharacter(), createCustom() | SD02 | Facade, Factory Method |
-| F04 | Manage party (1 to 4 characters) | Deterministic | UC03 Manage Party | GameFacade, Party | addCharacter(), removeCharacter(), isValidSize() | SD02 | Facade |
+| F04 | Manage party (1 to 4 characters) | Deterministic | UC03 Manage Party | GameFacade, Party | manageParty(), addCharacter(), removeCharacter(), isValidSize() | SD02 | Facade |
 | F05 | Generate next story event | AI | UC06 Advance Story | GameFacade, AgentOrchestrator, LLMClient, MemoryManager, GameState | generateNextEvent(), generate(), getContext() | SD03 | Facade, Adapter |
-| F06 | Take a turn (player chooses an action) | Hybrid | UC04 Take a Turn | GameFacade, AgentOrchestrator, LLMClient, GameEngine, Action | interpretAction(), generate(), validate() | SD03 | Facade, Adapter, Command |
+| F06 | Take a turn (player chooses an action) | Hybrid | UC04 Take a Turn | GameFacade, AgentOrchestrator, LLMClient, GameEngine, Action, ActionHistory | interpretAction(), generate(), validate(), record() | SD03 | Facade, Adapter, Command |
 | F07 | Ability check | Deterministic | UC05 Resolve Dice Roll | GameEngine, RuleEngine | resolveAction(), rollAbilityCheck() | SD03 | — |
 | F08 | Attack roll | Deterministic | UC05 Resolve Dice Roll | GameEngine, RuleEngine | resolveAction(), rollAttack() | SD03 | — |
 | F09 | Damage roll | Deterministic | UC05 Resolve Dice Roll | GameEngine, RuleEngine, Character | rollDamage(), applyDamage() | SD03 | — |
