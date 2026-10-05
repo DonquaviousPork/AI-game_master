@@ -411,102 +411,165 @@ What would be harder without it: Without a factory, GameFacade (or the GUI) woul
 <img width="1220" height="860" alt="Use case" src="https://github.com/user-attachments/assets/fb84e506-7aa7-4d28-a656-2adb11a5c4d2" />
 
 _UC01 — Start New Game_
-
+           
 Actors: Player, LLM Service
+
 Goal: Begin a new game session with a freshly generated scenario.
+
 Preconditions: No game currently in progress.
+
 Trigger: Player selects "New Game."
+
 Main Success Scenario: 1) Player selects New Game. 2) System requests a scenario from LLM Service via AgentOrchestrator. 3) LLM Service returns a premise and win-condition. 4) System creates a Scenario and stores it in GameState. 5) Scenario is shown to the player. 6) System proceeds to UC02.
+
 Alternative/Exception Flows: If LLM Service returns a malformed or incomplete response (no clear win-condition), the system retries once, then falls back to a default template scenario if the retry also fails.
+
 Postconditions: A valid Scenario with a win-condition exists in GameState.
+
 Related Feature(s): F01.
 
 _UC02 — Create Character_
 
 Actors: Player
+
 Goal: Add a playable character to the party.
+
 Preconditions: A scenario has been generated (UC01 complete); party has fewer than 4 characters.
+
 Trigger: Player chooses to create a character.
-Main Success Scenario: 1) Player chooses auto-generate or manual allocation. 2a) Auto: player selects a class; system applies that class's default stats. 2b) Manual: player allocates points across stats from the fixed pool. 3) System validates the character. 4) Character is added to the party (includes UC03).
+
+Main Success Scenario: 1) Player chooses auto-generate or manual allocation. 2a) Auto: player selects a class; system applies that class's default stats. 2b) Manual: player allocates points across stats from the fixed pool. 3) System validates the character. 4) Character is added to the party.
+
 Alternative/Exception Flows: If manual allocation doesn't match the point pool or exceeds a stat maximum, the system rejects it and prompts the player to correct it.
+
 Postconditions: A new valid Character exists in the Party.
+
 Related Feature(s): F02, F03.
 
 _UC03 — Manage Party_
 
 Actors: Player
+
 Goal: Keep the party within the allowed size (1 to 4 characters) by adding or removing members.
+
 Preconditions: At least one character exists, or character creation is in progress.
+
 Trigger: Player adds a newly created character, or chooses to remove an existing one.
+
 Main Success Scenario: 1) Player requests to add or remove a character. 2) System checks the resulting party size is between 1 and 4. 3) Party is updated.
+
 Alternative/Exception Flows: Adding beyond 4 or removing the last remaining character is blocked, with an explanatory message.
+
 Postconditions: Party size remains within the valid range (1–4).
+
 Related Feature(s): F04.
 
 _UC04 — Take a Turn_
 
 Actors: Player, LLM Service
+
 Goal: Perform one character's action during the current story event.
+
 Preconditions: Game is in the Story phase; it is this character's turn.
+
 Trigger: System prompts the active character for an action.
+
 Main Success Scenario: 1) Player submits an action (free text or selection). 2) System (via LLM Service) interprets it into a structured Action. 3) RuleEngine validates the action is legal. 4) Relevant roll(s) are resolved (includes UC05). 5) Turn passes to the next character, or triggers UC06 once all characters have acted.
+
 Alternative/Exception Flows: If the action is invalid (illegal target, incapacitated character), the system rejects it and re-prompts the player. If the AI's interpretation of free text is ambiguous, it asks the player to clarify before proceeding.
+
 Postconditions: The action's outcome is reflected in GameState (health changes, etc.).
+
 Related Feature(s): F06.
 
 _UC05 — Resolve Dice Roll_
 
 Actors: none beyond the system itself (triggered internally by UC04; not directly initiated by the Player)
+
 Goal: Determine the outcome of an ability check, attack, damage, or saving throw.
+
 Preconditions: An action requiring a roll has been validated.
+
 Trigger: RuleEngine is invoked by GameEngine as part of resolving an action.
+
 Main Success Scenario: 1) RuleEngine rolls the appropriate die. 2) Relevant stat modifier is added. 3) Result is compared to the required difficulty/armor class. 4) Outcome (success/failure, hit/miss, damage amount) is returned.
+
 Alternative/Exception Flows: If required data for the roll is missing (no difficulty value, no armor class), the system applies a default value rather than failing the action outright.
+
 Postconditions: A concrete numeric outcome exists for the triggering action.
+
 Related Feature(s): F07, F08, F09, F10.
 
 _UC06 — Advance Story_
 
 Actors: Player, LLM Service
+
 Goal: Narrate the outcome of the turn and generate the next story event.
+
 Preconditions: All characters have completed their turns for the current event, or a major action has just resolved.
+
 Trigger: Turn cycle for the current event completes.
+
 Main Success Scenario: 1) System sends resolved outcomes and recent story memory to LLM Service. 2) LLM Service returns narration and the next event. 3) System validates narration against GameState for consistency. 4) MemoryManager records the event (F12). 5) New event is displayed. 6) System checks for an end condition (includes UC07).
+
 Alternative/Exception Flows: If narration contradicts the actual resolved state, it is discarded and regenerated or replaced with a templated description.
+
 Postconditions: Story memory is updated; a new StoryEvent is active (unless the game has ended).
+
 Related Feature(s): F05, F11, F12.
 
 _UC07 — End Game_
 
 Actors: LLM Service
+
 Goal: Detect that the game has ended and present an appropriate conclusion.
+
 Preconditions: A story event has just resolved.
+
 Trigger: GameEngine checks end conditions after UC06.
+
 Main Success Scenario: 1) GameEngine checks whether all characters are dead, or the win-condition is complete. 2) If true, LLM Service generates a concluding narration. 3) Game is marked ended; no further turns are accepted. 4) Ending is displayed to the player.
+
 Alternative/Exception Flows: If the AI's narration implies the win-condition was met but GameState doesn't confirm it, the game does not end — the engine's check overrides the narration.
+
 Postconditions: Game is in the Ended phase.
+
 Related Feature(s): F13.
 
 _UC08 — Save Game_
 
 Actors: Player
+
 Goal: Persist the current game so it can be resumed later.
+
 Preconditions: A game is in progress.
+
 Trigger: Player selects "Save" and names a slot.
+
 Main Success Scenario: 1) Player chooses a save slot. 2) GameState produces a GameSnapshot. 3) SaveRepository writes it to storage. 4) System confirms the save succeeded.
+
 Alternative/Exception Flows: If the write fails, the system shows an error and the game continues unsaved.
+
 Postconditions: A GameSnapshot exists in storage for that slot.
+
 Related Feature(s): F14.
 
 _UC09 — Load Game_
 
 Actors: Player
+
 Goal: Resume a previously saved game.
+
 Preconditions: At least one save slot exists.
+
 Trigger: Player selects "Load" and picks a slot.
+
 Main Success Scenario: 1) Player picks a slot. 2) SaveRepository reads the GameSnapshot. 3) GameState is rebuilt from it. 4) The game resumes at the restored point.
+
 Alternative/Exception Flows: If the file is missing or corrupted, the system shows an error, doesn't overwrite the current session, and lets the player pick another slot or cancel.
+
 Postconditions: GameState reflects the restored snapshot.
+
 Related Feature(s): F14.
 
 **-------------------------------------------------------------------------------------------------------------------------------------------------------**
