@@ -25,14 +25,14 @@ This game takes heavy inspiration from Dungeons & Dragons. It is a single player
 F01 — Generate Scenario
 
 Description: The AI creates a starting scenario that establishes the goal (win-condition) and the central conflict. Generated once, when the player starts a new game.
-User Interaction: Player selects "New Game." No input required — generation happens automatically and the scenario is displayed before character creation begins.
-Input: None (optionally a genre/tone preference, if you want to offer one).
+User Interaction: Player selects "New Game." Generation happens automatically and the scenario is displayed before character creation begins.
+Input: None
 Output: A Scenario object containing a premise, setting, and win-condition, shown to the player as introductory text.
 AI Involvement: AI.
 Expected Workflow: 1) Player starts a new game. 2) GameFacade requests scenario generation. 3) AgentOrchestrator prompts the LLM for a scenario. 4) The result is parsed into a Scenario object and stored in GameState. 5) The scenario is displayed, and character creation begins.
 Error/Alternative Cases: If the AI response is malformed or missing a clear win-condition, the system retries the request or falls back to a default template scenario.
 
-F02 — Auto-Generate Character (Class-Typical Stats)
+F02 — Auto-Generate Character
 
 Description: The player chooses a predefined character class, which comes with a fixed default stat allocation.
 User Interaction: During character creation, player selects a class from a list (e.g. Fighter, Wizard, Rogue).
