@@ -410,7 +410,7 @@ What would be harder without it: Without a factory, GameFacade (or the GUI) woul
 
 <img width="1220" height="860" alt="Use case" src="https://github.com/user-attachments/assets/fb84e506-7aa7-4d28-a656-2adb11a5c4d2" />
 
-_UC01 — Start New Game_
+1. _UC01 — Start New Game_
            
 Actors: Player, LLM Service
 
@@ -428,7 +428,7 @@ Postconditions: A valid Scenario with a win-condition exists in GameState.
 
 Related Feature(s): F01.
 
-_UC02 — Create Character_
+2. _UC02 — Create Character_
 
 Actors: Player
 
@@ -446,7 +446,7 @@ Postconditions: A new valid Character exists in the Party.
 
 Related Feature(s): F02, F03.
 
-_UC03 — Manage Party_
+3. _UC03 — Manage Party_
 
 Actors: Player
 
@@ -464,7 +464,7 @@ Postconditions: Party size remains within the valid range (1–4).
 
 Related Feature(s): F04.
 
-_UC04 — Take a Turn_
+4. _UC04 — Take a Turn_
 
 Actors: Player, LLM Service
 
@@ -482,7 +482,7 @@ Postconditions: The action's outcome is reflected in GameState (health changes, 
 
 Related Feature(s): F06.
 
-_UC05 — Resolve Dice Roll_
+5. _UC05 — Resolve Dice Roll_
 
 Actors: none beyond the system itself (triggered internally by UC04; not directly initiated by the Player)
 
@@ -500,7 +500,7 @@ Postconditions: A concrete numeric outcome exists for the triggering action.
 
 Related Feature(s): F07, F08, F09, F10.
 
-_UC06 — Advance Story_
+6. _UC06 — Advance Story_
 
 Actors: Player, LLM Service
 
@@ -518,7 +518,7 @@ Postconditions: Story memory is updated; a new StoryEvent is active (unless the 
 
 Related Feature(s): F05, F11, F12.
 
-_UC07 — End Game_
+7. _UC07 — End Game_
 
 Actors: LLM Service
 
@@ -536,7 +536,7 @@ Postconditions: Game is in the Ended phase.
 
 Related Feature(s): F13.
 
-_UC08 — Save Game_
+8. _UC08 — Save Game_
 
 Actors: Player
 
@@ -554,7 +554,7 @@ Postconditions: A GameSnapshot exists in storage for that slot.
 
 Related Feature(s): F14.
 
-_UC09 — Load Game_
+9. _UC09 — Load Game_
 
 Actors: Player
 
