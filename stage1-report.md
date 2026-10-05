@@ -14,7 +14,7 @@ This game takes heavy inspiration from Dungeons & Dragons. It is a single player
 
 **Why is an AI agent appropriate for this problem?** It needs to interact with the player using natural language, generate a multitude of varying scenarios and needs context-dependent memory which are all suitable tasks for an LLM.
 
-**Which AI/LLM model(s) do you plan to use?** As of right now, I am considering chatGPT, but the AI model will be behind an interface so I can be replaced with relative ease.
+**Which AI/LLM model(s) do you plan to use?** As of right now, I am considering chatGPT, but the AI model will be behind an interface so it can be replaced with relative ease.
 
 **How will the AI model interact with the rest of the software system?** The AI's role is to interpret the player's natural-language input into a structured action, generate narrative content, and propose scenarios and story events, all of which the engine validates against the authoritative game state before anything takes effect. The AI never rolls dice, decides outcomes, or directly changes game state — those are handled entirely by deterministic code. 
 
