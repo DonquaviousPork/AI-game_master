@@ -395,7 +395,8 @@ Related Feature(s): F14.
 
 **Sequence Diagram 3: Use Cases 4, 5, 6, 7**
 
-<img width="7213" height="8192" alt="image" src="https://github.com/user-attachments/assets/790ebc70-c30c-4395-8ae2-90a534c550ff" />
+<img width="7095" height="8192" alt="image" src="https://github.com/user-attachments/assets/39984c83-bad9-4363-91f7-fe2a80ff78ca" />
+
 
 
 **Sequence Diagram 4: Use Cases 8, 9**
