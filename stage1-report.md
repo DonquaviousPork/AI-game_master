@@ -295,7 +295,7 @@ What would be harder without it: Without a factory, GameFacade (or the GUI) woul
 
 **-------------------------------------------------------------------------------------------------------------------------------------------------------**
 
-**Use Case Diagram: **
+**Use Case Diagram:**
 
 <img width="1220" height="860" alt="Use case" src="https://github.com/user-attachments/assets/fb84e506-7aa7-4d28-a656-2adb11a5c4d2" />
 
