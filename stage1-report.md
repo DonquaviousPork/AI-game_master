@@ -281,7 +281,8 @@ Error/Alternative Cases: Write failure → show an error, game continues unsaved
 
 **Class Diagram:**
 
-<img width="8191" height="3482" alt="Game Action Resolution Flow-2026-10-05-002617" src="https://github.com/user-attachments/assets/9ea59257-4995-4006-a6f1-b1f5ddf47259" />
+<img width="4270" height="1760" alt="Class Diagram Oct 9" src="https://github.com/user-attachments/assets/57d29913-c3bd-4cb4-bd29-54d621f256eb" />
+
 
 
 
