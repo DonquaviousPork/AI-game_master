@@ -578,25 +578,29 @@ Related Feature(s): F14.
 
 **Sequence Diagram 1: Use Case 1**
 
-<img width="8192" height="5363" alt="image" src="https://github.com/user-attachments/assets/8a69e229-6dd7-4d27-9637-25eb270ecc53" />
+<img width="1390" height="1175" alt="SD01-new-game" src="https://github.com/user-attachments/assets/5ec09c9b-76f8-4eb8-9e53-9f5ce2bdc7b6" />
+
 
 
 **Sequence Diagram 2: Use Case 2, 3**
 
-<img width="5635" height="8191" alt="image" src="https://github.com/user-attachments/assets/6eff3d45-f1fb-4709-b6f5-79716db63472" />
+<img width="1440" height="1875" alt="SD02-character-and-party" src="https://github.com/user-attachments/assets/eb93b189-5746-4bc1-9173-acc646919119" />
+
 
 
 
 **Sequence Diagram 3: Use Cases 4, 5, 6, 7**
 
-<img width="7241" height="8192" alt="image" src="https://github.com/user-attachments/assets/bc1f5854-091a-4db9-92f4-89865c680fa9" />
+<img width="3040" height="2630" alt="SD03-action-and-game-loop" src="https://github.com/user-attachments/assets/85de7ff0-0d05-41c7-b923-4e0be7f47df5" />
+
 
 
 
 
 **Sequence Diagram 4: Use Cases 8, 9**
 
-<img width="6720" height="7885" alt="image" src="https://github.com/user-attachments/assets/3b6efa0a-43da-4518-b4d9-265f64ae921c" />
+<img width="1040" height="1580" alt="SD04-save-and-load" src="https://github.com/user-attachments/assets/7f5137f6-994a-4285-a185-89ffd4ffe348" />
+
 
 
 **-------------------------------------------------------------------------------------------------------------------------------------------------------**
