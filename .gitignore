@@ -1,0 +1,17 @@
+# Local secrets
+.env
+.env.*
+!.env.example
+config.local.json
+
+# Build output
+target/
+out/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Local save files
+saves/
