@@ -1,13 +1,13 @@
 package gamemaster.rules;
 
-import gamemaster.model.Character;
+import gamemaster.model.Combatant;
 import gamemaster.model.Stat;
 import gamemaster.model.Weapon;
 import java.util.Objects;
 
 /**
  * All dice mechanics (F07 to F10). This class only rolls and compares; it never
- * changes a character. The caller applies the results, which keeps the AI out
+ * changes a combatant. The caller applies the results, which keeps the AI out
  * of the arithmetic entirely.
  */
 public class RuleEngine {
@@ -28,7 +28,7 @@ public class RuleEngine {
     }
 
     /** F07: d20 + stat modifier, success when the total meets the difficulty. */
-    public CheckResult rollAbilityCheck(Character character, Stat stat, int difficulty) {
+    public CheckResult rollAbilityCheck(Combatant character, Stat stat, int difficulty) {
         requireAlive(character, "make an ability check");
         requirePositive(difficulty);
         int roll = dice.roll(D20);
@@ -37,12 +37,12 @@ public class RuleEngine {
         return new CheckResult(roll, modifier, total, difficulty, total >= difficulty);
     }
 
-    public CheckResult rollAbilityCheck(Character character, Stat stat) {
+    public CheckResult rollAbilityCheck(Combatant character, Stat stat) {
         return rollAbilityCheck(character, stat, DEFAULT_DIFFICULTY);
     }
 
     /** F08: d20 + the weapon stat's modifier against the target's armor class. */
-    public AttackResult rollAttack(Character attacker, Weapon weapon, Character target) {
+    public AttackResult rollAttack(Combatant attacker, Weapon weapon, Combatant target) {
         requireAlive(attacker, "attack");
         Objects.requireNonNull(weapon, "weapon");
         Objects.requireNonNull(target, "target");
@@ -58,9 +58,9 @@ public class RuleEngine {
 
     /**
      * F09: the weapon's die plus the weapon stat's modifier, never below 1.
-     * Returns the amount only; the caller passes it to Character.applyDamage().
+     * Returns the amount only; the caller passes it to Combatant.applyDamage().
      */
-    public int rollDamage(Character attacker, Weapon weapon) {
+    public int rollDamage(Combatant attacker, Weapon weapon) {
         requireAlive(attacker, "deal damage");
         Objects.requireNonNull(weapon, "weapon");
         int roll = dice.roll(weapon.damageSides());
@@ -68,7 +68,7 @@ public class RuleEngine {
     }
 
     /** F10: d20 + stat modifier, success when the total meets the difficulty. */
-    public SaveResult rollSavingThrow(Character target, Stat stat, int difficulty) {
+    public SaveResult rollSavingThrow(Combatant target, Stat stat, int difficulty) {
         requireAlive(target, "make a saving throw");
         requirePositive(difficulty);
         int roll = dice.roll(D20);
@@ -77,11 +77,11 @@ public class RuleEngine {
         return new SaveResult(roll, modifier, total, difficulty, total >= difficulty);
     }
 
-    public SaveResult rollSavingThrow(Character target, Stat stat) {
+    public SaveResult rollSavingThrow(Combatant target, Stat stat) {
         return rollSavingThrow(target, stat, DEFAULT_DIFFICULTY);
     }
 
-    private static void requireAlive(Character c, String action) {
+    private static void requireAlive(Combatant c, String action) {
         Objects.requireNonNull(c, "character");
         if (!c.isAlive()) {
             throw new IllegalStateException(c.getName() + " is defeated and cannot " + action + ".");

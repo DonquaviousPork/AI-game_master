@@ -8,7 +8,7 @@ import java.util.Objects;
  * A playable character. Note: this class shadows java.lang.Character inside
  * the gamemaster.model package; use the wrapper type's full name if you ever need it here.
  */
-public class Character {
+public class Character implements Combatant {
 
     private final String name;
     private final CharacterClass characterClass;
@@ -41,11 +41,12 @@ public class Character {
         return Math.floorDiv(score - 10, 2);
     }
 
-    public int getStat(Stat stat) { return stats.get(stat); }
+    @Override public int getStat(Stat stat) { return stats.get(stat); }
 
-    public int getModifier(Stat stat) { return modifier(stats.get(stat)); }
+    @Override public int getModifier(Stat stat) { return modifier(stats.get(stat)); }
 
     /** Reduces health by amount, never below 0. */
+    @Override
     public void applyDamage(int amount) {
         if (amount < 0) {
             throw new IllegalArgumentException("Damage must not be negative");
@@ -53,13 +54,22 @@ public class Character {
         health = Math.max(0, health - amount);
     }
 
-    public boolean isAlive() { return health > 0; }
+    /** Restores health by amount, never above the maximum. */
+    @Override
+    public void heal(int amount) {
+        if (amount < 0) {
+            throw new IllegalArgumentException("Healing must not be negative");
+        }
+        health = Math.min(maxHealth, health + amount);
+    }
 
-    public String getName() { return name; }
+    @Override public boolean isAlive() { return health > 0; }
+
+    @Override public String getName() { return name; }
     public CharacterClass getCharacterClass() { return characterClass; }
-    public int getHealth() { return health; }
-    public int getMaxHealth() { return maxHealth; }
-    public int getArmorClass() { return armorClass; }
+    @Override public int getHealth() { return health; }
+    @Override public int getMaxHealth() { return maxHealth; }
+    @Override public int getArmorClass() { return armorClass; }
 
     @Override public String toString() {
         return name + " the " + characterClass.name() + " (HP " + health + "/" + maxHealth + ", AC " + armorClass + ")";

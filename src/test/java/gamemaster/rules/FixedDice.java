@@ -4,11 +4,11 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 
 /** Test dice that return a scripted sequence and refuse impossible values. */
-class FixedDice implements Dice {
+public class FixedDice implements Dice {
 
     private final Deque<Integer> values = new ArrayDeque<>();
 
-    FixedDice(int... rolls) {
+    public FixedDice(int... rolls) {
         for (int r : rolls) {
             values.addLast(r);
         }
@@ -26,7 +26,7 @@ class FixedDice implements Dice {
         return value;
     }
 
-    int remaining() {
+    public int remaining() {
         return values.size();
     }
 }

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import gamemaster.model.Character;
 import gamemaster.model.CharacterFactory;
 import gamemaster.model.FighterClass;
+import gamemaster.model.Monster;
 import gamemaster.model.RogueClass;
 import gamemaster.model.Stat;
 import gamemaster.model.Weapon;
@@ -151,5 +152,31 @@ class RuleEngineTest {
             assertTrue(v >= 1 && v <= 20, "rolled " + v);
         }
         assertThrows(IllegalArgumentException.class, () -> dice.roll(0));
+    }
+
+    // Goblin: all stats 10 (+0), AC 13, dagger d4 on DEX
+    private Monster goblin() { return new Monster("Goblin", 7, 13, Weapon.DAGGER); }
+
+    @Test
+    void aMonsterCanAttackACharacter() {
+        // Fighter AC 11; goblin DEX mod 0; roll 11 -> total 11 hits
+        RuleEngine engine = new RuleEngine(new FixedDice(11));
+        Monster g = goblin();
+        assertTrue(engine.rollAttack(g, g.getWeapon(), fighter()).hit());
+    }
+
+    @Test
+    void aMonsterIsAttackedAgainstItsOwnArmorClass() {
+        // Fighter STR +2; goblin AC 13; roll 10 -> total 12 misses, roll 11 -> 13 hits
+        assertFalse(new RuleEngine(new FixedDice(10)).rollAttack(fighter(), Weapon.LONGSWORD, goblin()).hit());
+        assertTrue(new RuleEngine(new FixedDice(11)).rollAttack(fighter(), Weapon.LONGSWORD, goblin()).hit());
+    }
+
+    @Test
+    void monsterDamageUsesItsWeaponDie() {
+        // d4 roll of 3 with a +0 modifier
+        RuleEngine engine = new RuleEngine(new FixedDice(3));
+        Monster g = goblin();
+        assertEquals(3, engine.rollDamage(g, g.getWeapon()));
     }
 }
