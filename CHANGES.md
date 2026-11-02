@@ -69,7 +69,7 @@ the git history; this file is the design-level record.
   -> `AbilityCheckAction.undo` does nothing; documented limit of the undo feature.
 - `FleeAction` was not in the diagram -> new action: a DEXTERITY check that removes all monsters on success
   -> players need a way out of combat
-  -> new class;.
+  -> new class.
 - `setScenario` and `setCurrentEvent` on `GameEngine` -> implemented as designed
   -> these were the Stage 1 method names after the consistency fixes
   -> none.
@@ -77,9 +77,36 @@ the git history; this file is the design-level record.
   -> encounters and the end condition need entry points the engine owns
   -> `concludeStory` is how the story ends by choice; the AI will call it only through the engine.
 
+## Commit 5: LLM layer and scenario generation (F01)
+
+- `OpenAIClient` as a provider-specific adapter -> `OpenAIClient` targets any OpenAI-compatible
+  chat-completions endpoint, chosen by `LLM_BASE_URL` in `.env` (default: Groq)
+  -> a free provider is needed for a school project, and this avoids tying the code to one vendor
+  -> Adapter pattern unchanged; switching provider needs no code change.
+- `LLMClient` returned the model's reply -> `LLMClient.complete(List<ChatMessage>)` returns plain text
+  -> the simplest interface that the scenario generator and later agent code can share
+  -> new `ChatMessage` record and `LLMException` class, neither in the Stage 1 diagram.
+- No configuration class in the design -> `LLMConfig` reads `.env` and environment variables
+  -> keys must stay out of source code and out of git
+  -> new class; the key is hidden in `toString()`, and placeholder values are rejected.
+- Scenario taken directly from the AI -> `ScenarioGenerator` asks for JSON, validates every field
+  (monsters 0 to 3, health 1 to 30, armor class 8 to 18, known weapons only) and retries once,
+  telling the model what was wrong
+  -> the AI must not be able to set arbitrary numbers
+  -> F01 is hybrid: the AI proposes, code decides.
+- `GeneratedScenario.applyTo(engine)` hands an accepted scenario to `GameEngine`
+  -> the engine, not the AI, performs the phase changes
+  -> new record; follows the "AI proposes, engine decides" rule.
+- Added the Gson library (2.10.1) as a dependency
+  -> JSON parsing and building by hand is error-prone
+  -> new entry in `pom.xml`.
+- Added `LiveCheck`, a manual class that makes one real model call
+  -> verifies that a local `.env` works
+  -> development aid only; it will be replaced by the CLI.
+
 ## Still to log (later commits)
 
-- LLM adapter, agent loop, tools and memory (F01, F11, F12, F13).
+- Agent loop, tools and memory (F11, F12, F13).
 - Save and load with the Memento pattern (F14).
 - CLI, GUI and `GameFacade`.
 - Updated class diagram, plus sequence diagrams that changed.
