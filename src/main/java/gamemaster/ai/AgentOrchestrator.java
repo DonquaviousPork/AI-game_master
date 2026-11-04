@@ -42,16 +42,20 @@ public class AgentOrchestrator {
     private final LLMClient llm;
     private final GameEngine engine;
     private final ToolRegistry tools;
+    private final MemoryManager memory;
 
-    public AgentOrchestrator(LLMClient llm, GameEngine engine, ToolRegistry tools) {
+    public AgentOrchestrator(LLMClient llm, GameEngine engine, ToolRegistry tools, MemoryManager memory) {
         this.llm = Objects.requireNonNull(llm, "llm");
         this.engine = Objects.requireNonNull(engine, "engine");
         this.tools = Objects.requireNonNull(tools, "tools");
+        this.memory = Objects.requireNonNull(memory, "memory");
     }
 
     public AgentOrchestrator(LLMClient llm, GameEngine engine) {
-        this(llm, engine, ToolRegistry.defaultFor(engine));
+        this(llm, engine, ToolRegistry.defaultFor(engine), new MemoryManager(llm));
     }
+
+    public MemoryManager getMemory() { return memory; }
 
     public TurnResult takeTurn(String playerInput) {
         if (playerInput == null || playerInput.isBlank()) {
@@ -63,7 +67,9 @@ public class AgentOrchestrator {
 
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(ChatMessage.system(SYSTEM_PROMPT));
-        messages.add(ChatMessage.user("CURRENT GAME STATE\n" + StateDescriber.describe(engine.getState())
+        String remembered = memory.asPromptText();
+        messages.add(ChatMessage.user((remembered.isEmpty() ? "" : remembered + "\n")
+                + "CURRENT GAME STATE\n" + StateDescriber.describe(engine.getState())
                 + "\nPLAYER ACTION: " + playerInput.trim()));
 
         List<String> activity = new ArrayList<>();
@@ -100,6 +106,7 @@ public class AgentOrchestrator {
         if (!narration.isBlank()) {
             engine.setCurrentEvent(new StoryEvent(narration));
         }
+        memory.record(playerInput, narration, activity);
         return new TurnResult(narration, activity, engine.checkEndCondition());
     }
 }

@@ -152,9 +152,33 @@ the git history; this file is the design-level record.
   -> seen during the live test
   -> small helper; no design impact.
 
+## Commit 8: story memory
+
+- Stage 1 had a memory component for the story -> `MemoryManager` keeps the last 8 turns word for word
+  (player input, what the rules did, the narration) and folds the 4 oldest into a running summary
+  once that limit is passed
+  -> the model has no memory of its own between calls, and sending the whole history would exceed
+  the free model's token limit
+  -> the summary is written by the model, so this is AI-based memory compression; it adds one extra
+  model call every few turns, not every turn.
+- Nothing said what happens if summarizing fails -> on an `LLMException` the folded turns are kept as plain
+  truncated text
+  -> a network error or rate limit must not lose the story or stop the game
+  -> memory degrades gracefully instead of throwing.
+- Summary size was unbounded -> capped at 1,500 characters (cut at a sentence end), narration at 400 and each
+  tool result at 160 characters when stored
+  -> keeps every prompt small
+  -> hard limits in `MemoryManager`.
+- `AgentOrchestrator` built each prompt from the game state only -> it now adds the memory text ("STORY SO FAR")
+  and records each finished turn, including what the rules did
+  -> the model can stay consistent with earlier events and names
+  -> new constructor argument (the old constructors still work).
+- Added `getSummary`, `getRecentTurns` and `restore` on `MemoryManager`
+  -> save and load (next commits) must store and rebuild the memory
+  -> small API that the Memento will use.
+
 ## Still to log (later commits)
 
-- Story memory (F11, F13).
 - Save and load with the Memento pattern (F14).
 - CLI, GUI and `GameFacade`.
 - Updated class diagram, plus sequence diagrams that changed.

@@ -213,4 +213,30 @@ class AgentOrchestratorTest {
         assertTrue(text.contains("Wolf (HP 4/10"), text);
         assertTrue(text.contains("Recent game events"));
     }
+
+    @Test
+    void theFirstTurnHasNoMemorySectionAndLaterTurnsRememberEarlierOnes() {
+        GameEngine e = engine();
+        FakeLLM llm = new FakeLLM("A raven watches from the branches.", "The raven flies off.");
+        AgentOrchestrator agent = new AgentOrchestrator(llm, e);
+        agent.takeTurn("I study the trees");
+        agent.takeTurn("I wave at the bird");
+
+        assertFalse(llm.calls.get(0).get(1).content().contains("STORY SO FAR"));
+        String second = llm.calls.get(1).get(1).content();
+        assertTrue(second.contains("STORY SO FAR"));
+        assertTrue(second.contains("I study the trees"));
+        assertTrue(second.contains("A raven watches from the branches."));
+        assertEquals(2, agent.getMemory().getRecentTurns().size());
+    }
+
+    @Test
+    void whatTheRulesDidIsRememberedToo() {
+        GameEngine e = engine(15);
+        FakeLLM llm = new FakeLLM().thenTool("roll_check", CHECK).thenText("The log moves.").thenText("Next.");
+        AgentOrchestrator agent = new AgentOrchestrator(llm, e);
+        agent.takeTurn("I lift the log");
+        agent.takeTurn("I look under it");
+        assertTrue(llm.calls.get(2).get(1).content().contains("Rules: roll_check:"));
+    }
 }
