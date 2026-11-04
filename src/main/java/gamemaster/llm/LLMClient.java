@@ -8,6 +8,11 @@ import java.util.List;
  */
 public interface LLMClient {
 
-    /** Sends the conversation and returns the model's reply text. */
-    String complete(List<ChatMessage> messages);
+    /** Sends the conversation, offering the given tools; the reply may ask to run some of them. */
+    LLMResponse chat(List<ChatMessage> messages, List<ToolSpec> tools);
+
+    /** Plain text in, plain text out, with no tools offered. */
+    default String complete(List<ChatMessage> messages) {
+        return chat(messages, List.of()).content();
+    }
 }

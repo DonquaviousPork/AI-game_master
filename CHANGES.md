@@ -104,9 +104,36 @@ the git history; this file is the design-level record.
   -> verifies that a local `.env` works
   -> development aid only; it will be replaced by the CLI.
 
+## Commit 6: AI tools and tool-call support (F06, F12 groundwork)
+
+- `LLMClient.complete(messages)` returned text only -> `LLMClient.chat(messages, tools)` returns an
+  `LLMResponse` (text and/or tool requests); `complete` stays as a default method
+  -> the model must be able to ask the game to do things, not only talk
+  -> new `ToolSpec`, `ToolCall` and `LLMResponse` records; `ChatMessage` gained tool-call and tool-result
+  fields; `OpenAIClient` sends and parses the OpenAI tool-calling format. Scenario generation is unaffected.
+- `ToolRegistry` was in the Stage 1 sequence diagrams as a box but never used
+  -> implemented as the only door between the AI and the game: it lists tools, runs one requested call,
+  and turns every bad request (unknown tool, malformed JSON, invalid values, wrong phase) into an
+  "Error: ..." message for the model instead of an exception
+  -> the agent now shows real tool use.
+- New `Tool` interface with four tools: `roll_check`, `attack`, `spawn_monster`, `end_story`
+  -> each is a thin wrapper that validates arguments and calls `GameEngine`; the AI never rolls dice,
+  sets damage or changes health itself
+  -> these map onto the existing `Action` commands, so undo and the phase rules apply to AI-driven moves too.
+- Monster limits were inside `ScenarioGenerator` -> moved to a shared `JsonFields` helper
+  -> `spawn_monster` must judge a monster by exactly the same limits as scenario generation
+  -> internal refactor; behaviour unchanged. New limit: at most 4 living monsters at once.
+- Combatants referred to by name -> `Lookup` resolves names case-insensitively, and prefers a living
+  combatant when two share a name (two wolves)
+  -> the model talks in names, not object references
+  -> new package-private helper; attacks are only allowed between heroes and monsters.
+- Characters had no weapon -> weapon chosen from the class (Fighter longsword, Rogue dagger, otherwise quarterstaff)
+  -> attacks need a weapon and Stage 1 did not say where it comes from
+  -> lives in `Lookup.weaponOf`; revisit if players should choose weapons.
+
 ## Still to log (later commits)
 
-- Agent loop, tools and memory (F11, F12, F13).
+- Agent loop and memory (F11, F13).
 - Save and load with the Memento pattern (F14).
 - CLI, GUI and `GameFacade`.
 - Updated class diagram, plus sequence diagrams that changed.

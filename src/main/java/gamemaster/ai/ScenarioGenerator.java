@@ -8,7 +8,6 @@ import com.google.gson.JsonParser;
 import gamemaster.game.Scenario;
 import gamemaster.game.StoryEvent;
 import gamemaster.model.Monster;
-import gamemaster.model.Weapon;
 import gamemaster.llm.ChatMessage;
 import gamemaster.llm.LLMClient;
 import gamemaster.llm.LLMException;
@@ -26,13 +25,8 @@ public class ScenarioGenerator {
 
     static final int MAX_ATTEMPTS = 2;
     static final int MAX_MONSTERS = 3;
-    static final int MIN_HEALTH = 1, MAX_HEALTH = 30;
-    static final int MIN_AC = 8, MAX_AC = 18;
-
-    private static final Map<String, Weapon> WEAPONS = Map.of(
-            "longsword", Weapon.LONGSWORD,
-            "quarterstaff", Weapon.QUARTERSTAFF,
-            "dagger", Weapon.DAGGER);
+    static final int MIN_HEALTH = JsonFields.MIN_HEALTH, MAX_HEALTH = JsonFields.MAX_HEALTH;
+    static final int MIN_AC = JsonFields.MIN_AC, MAX_AC = JsonFields.MAX_AC;
 
     private static final String SYSTEM_PROMPT = """
             You write opening scenarios for a small fantasy text role-playing game.
@@ -97,16 +91,7 @@ public class ScenarioGenerator {
                 throw new IllegalArgumentException("Each monster must be an object.");
             }
             JsonObject m = e.getAsJsonObject();
-            String weaponName = text(m, "weapon").toLowerCase();
-            Weapon weapon = WEAPONS.get(weaponName);
-            if (weapon == null) {
-                throw new IllegalArgumentException("Unknown weapon \"" + weaponName
-                        + "\". Use longsword, quarterstaff or dagger.");
-            }
-            monsters.add(new Monster(text(m, "name"),
-                    number(m, "health", MIN_HEALTH, MAX_HEALTH),
-                    number(m, "armor_class", MIN_AC, MAX_AC),
-                    weapon));
+            monsters.add(JsonFields.monster(m));
         }
         return new GeneratedScenario(scenario, event, monsters);
     }
@@ -128,27 +113,6 @@ public class ScenarioGenerator {
     }
 
     private static String text(JsonObject o, String key) {
-        JsonElement e = o.get(key);
-        if (e == null || !e.isJsonPrimitive() || e.getAsString().isBlank()) {
-            throw new IllegalArgumentException("\"" + key + "\" must be a non-empty string.");
-        }
-        return e.getAsString().trim();
-    }
-
-    private static int number(JsonObject o, String key, int min, int max) {
-        JsonElement e = o.get(key);
-        int value;
-        try {
-            if (e == null || !e.isJsonPrimitive()) {
-                throw new NumberFormatException();
-            }
-            value = Integer.parseInt(e.getAsString().trim());
-        } catch (NumberFormatException ex) {
-            throw new IllegalArgumentException("\"" + key + "\" must be a whole number.");
-        }
-        if (value < min || value > max) {
-            throw new IllegalArgumentException("\"" + key + "\" must be between " + min + " and " + max + ".");
-        }
-        return value;
+        return JsonFields.text(o, key);
     }
 }
