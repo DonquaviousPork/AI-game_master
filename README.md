@@ -30,14 +30,34 @@ the rules, dice and game state: the AI proposes, the engine decides.
 The tests use scripted dice and a fake model, so they need no network and no key.
 
 ## Run
-GUI and CLI launch commands will be added as those parts are implemented.
+Command-line game (run from the project folder, where `.env` is):
 
-To check that your key and model work, run `gamemaster.ai.LiveCheck` from your
-IDE (the Run button above its `main` method). It makes one real model call and
-prints a generated scenario. An optional theme can be passed as a program argument.
+    mvn -q compile exec:java
+
+Or open `src/main/java/gamemaster/cli/CliApp.java` in your IDE and run its `main` method.
+The GUI launch command will be added with the GUI.
+
+To check that your key and model work without playing, run `gamemaster.ai.LiveCheck`
+from your IDE. It makes one real model call and prints a generated scenario.
 
 ## Example usage
-Example sessions for the CLI and GUI will be added with those interfaces.
+Start the game, build a party, and let the AI create an adventure. Anything that is not a
+command is treated as what your party does.
+
+    setup> /add Fighter Brenna
+    setup> /add Wizard Mira
+    setup> /start willow grove
+    > I swing my sword at the wolf
+    (narration from the AI game master)
+      [rules] attack: Brenna hits Shadow Wolf (rolled 17 vs AC 13) for 7 damage. ...
+    Party: Brenna 21/24 | Mira 20/20   Enemies: Shadow Wolf 5/12
+    > /save mygame
+
+Commands: `/add <Fighter|Wizard|Rogue> <name>`, `/custom <class> <name>` (spend 20 stat
+points yourself), `/remove <name>`, `/party`, `/start [theme]`, `/status`, `/undo`,
+`/save <name>`, `/load <name>`, `/saves`, `/help`, `/quit`.
+The `[rules]` lines show what the game engine actually rolled and changed; the AI only
+narrates and requests actions.
 
 ## Project layout
 | Package | Contents |
@@ -47,6 +67,8 @@ Example sessions for the CLI and GUI will be added with those interfaces.
 | `gamemaster.game` | `GameState`, game phases, player actions with undo, `GameEngine` |
 | `gamemaster.llm` | `LLMClient`, `OpenAIClient`, `LLMConfig`, `ChatMessage` |
 | `gamemaster.ai` | Scenario generation, the agent loop (`AgentOrchestrator`), tools (`ToolRegistry`) and story memory (`MemoryManager`) |
+| `gamemaster.app` | `GameFacade`, the single entry point used by the CLI and GUI |
+| `gamemaster.cli` | `CliSession` and `CliApp`, the command-line game |
 | `gamemaster.save` | `SaveRepository` and `SaveService` for saving and loading games |
 
 ## Design patterns in the code so far
@@ -55,11 +77,13 @@ Example sessions for the CLI and GUI will be added with those interfaces.
 - **Command:** `Action` with `AttackAction`, `AbilityCheckAction`, `FleeAction`, and `ActionHistory` for undo.
 - **Observer:** `GameState` notifies attached `GameView`s on every change.
 - **Adapter:** `LLMClient` with `OpenAIClient` adapts any OpenAI-compatible service.
+- **Facade:** `GameFacade` hides the engine, AI agent, memory and saving behind a few methods.
 - **Memento:** `GameSnapshot` (memento), `GameState` (originator) and `SaveRepository` (caretaker) save and restore a game.
 
 ## Status
 Work in progress. Done so far: characters and party, dice rules, monsters, the
 game engine with phases and undo, AI scenario generation, the AI agent loop with
-tools and story memory, and save and load. Still to come: the CLI and the GUI.
+tools and story memory, save and load, the facade and the command-line game.
+Still to come: the GUI.
 Saved games are written to a `saves/` folder, which is ignored by git.
 See `CHANGES.md` for every difference from the Stage 1 design.

@@ -116,4 +116,45 @@ class ScenarioGeneratorTest {
         assertEquals("The Hollow Crypt", engine.getState().getScenario().title());
         assertEquals("A skeleton rises from a tomb.", engine.getState().getCurrentEvent().description());
     }
+
+    @Test
+    void extraTextAndASecondObjectAfterTheJsonAreIgnored() {
+        GeneratedScenario s = new ScenarioGenerator(new FakeLLM(
+                "Here is the scenario: " + VALID + "\nNote: use {curly braces} sparingly. {\"example\": 1}")).generate(null);
+        assertEquals("The Hollow Crypt", s.scenario().title());
+    }
+
+    @Test
+    void bracesInsideStringsDoNotConfuseTheExtraction() {
+        String tricky = "{\"title\":\"Braces } and { here\",\"description\":\"D \\\"quoted\\\" text\","
+                + "\"opening_event\":\"E\",\"monsters\":[]}";
+        GeneratedScenario s = new ScenarioGenerator(new FakeLLM(tricky)).generate(null);
+        assertEquals("Braces } and { here", s.scenario().title());
+        assertEquals("D \"quoted\" text", s.scenario().description());
+    }
+
+    @Test
+    void aCutOffReplyIsRecognisedAsSuch() {
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> ScenarioGenerator.parse("{\"title\":\"Half a scen"));
+        assertTrue(e.getMessage().contains("cut off"));
+    }
+
+    @Test
+    void theParserErrorIsPassedBackToTheModelAndShownWhenGivingUp() {
+        String broken = "{\"title\":\"The \"Hollow\" Crypt\",\"description\":\"D\",\"opening_event\":\"E\",\"monsters\":[]}";
+        FakeLLM llm = new FakeLLM(broken, broken);
+        LLMException e = assertThrows(LLMException.class, () -> new ScenarioGenerator(llm).generate(null));
+        assertTrue(e.getMessage().contains("not valid JSON"), e.getMessage());
+        assertTrue(e.getMessage().contains("The \"Hollow\" Crypt"), e.getMessage());
+        var retry = llm.calls.get(1);
+        assertTrue(retry.get(retry.size() - 1).content().contains("not valid JSON"));
+    }
+
+    @Test
+    void thePromptTellsTheModelHowToQuoteText() {
+        FakeLLM llm = new FakeLLM(VALID);
+        new ScenarioGenerator(llm).generate(null);
+        assertTrue(llm.calls.get(0).get(0).content().contains("single quotes"));
+    }
 }

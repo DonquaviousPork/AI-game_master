@@ -40,6 +40,7 @@ public class ScenarioGenerator {
             - monsters: 0 to 3 enemies the party meets at once. health must be %d to %d,
               armor_class must be %d to %d, weapon must be one of: longsword, quarterstaff, dagger.
             - Do not decide any outcomes, rolls or damage. The game rules handle those.
+            - Inside text values use single quotes, never double quotes, and put no line breaks inside a value.
             """.formatted(MIN_HEALTH, MAX_HEALTH, MIN_AC, MAX_AC);
 
     private final LLMClient llm;
@@ -57,8 +58,10 @@ public class ScenarioGenerator {
                 : "Create a new adventure with this theme: " + theme.trim()));
 
         String lastProblem = "";
+        String lastReply = "";
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             String reply = llm.complete(conversation);
+            lastReply = reply == null ? "" : reply;
             try {
                 return parse(reply);
             } catch (IllegalArgumentException e) {
@@ -68,7 +71,8 @@ public class ScenarioGenerator {
                         + " Reply again with only the corrected JSON object."));
             }
         }
-        throw new LLMException("The AI could not produce a valid scenario: " + lastProblem);
+        throw new LLMException("The AI could not produce a valid scenario: " + lastProblem
+                + " (the last reply began: \"" + preview(lastReply) + "\")");
     }
 
     /** Package-visible so tests can check validation without a model. */
@@ -101,15 +105,53 @@ public class ScenarioGenerator {
             throw new IllegalArgumentException("The reply was empty.");
         }
         int start = reply.indexOf('{');
-        int end = reply.lastIndexOf('}');
-        if (start < 0 || end <= start) {
+        if (start < 0) {
             throw new IllegalArgumentException("The reply did not contain a JSON object.");
+        }
+        int end = matchingBrace(reply, start);
+        if (end < 0) {
+            throw new IllegalArgumentException("The JSON object was never closed (the reply looks cut off).");
         }
         try {
             return JsonParser.parseString(reply.substring(start, end + 1)).getAsJsonObject();
         } catch (JsonParseException | IllegalStateException e) {
-            throw new IllegalArgumentException("The reply was not valid JSON.");
+            String detail = e.getMessage() == null ? "" : e.getMessage().split("\\R")[0];
+            throw new IllegalArgumentException("The reply was not valid JSON (" + cut(detail, 160) + ").");
         }
+    }
+
+    /** Index of the brace that closes the one at start, ignoring braces inside strings; -1 if unclosed. */
+    static int matchingBrace(String text, int start) {
+        int depth = 0;
+        boolean inString = false;
+        for (int i = start; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (inString) {
+                if (c == '\\') {
+                    i++;
+                } else if (c == '"') {
+                    inString = false;
+                }
+            } else if (c == '"') {
+                inString = true;
+            } else if (c == '{') {
+                depth++;
+            } else if (c == '}') {
+                depth--;
+                if (depth == 0) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
+    private static String preview(String reply) {
+        return cut(reply.replaceAll("\\s+", " ").trim(), 300);
+    }
+
+    private static String cut(String text, int max) {
+        return text.length() <= max ? text : text.substring(0, max) + "...";
     }
 
     private static String text(JsonObject o, String key) {

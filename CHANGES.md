@@ -208,7 +208,55 @@ the git history; this file is the design-level record.
   -> saves written by a future format must not be misread
   -> only version 1 exists.
 
+## Commit 10: GameFacade and command-line interface
+
+- Stage 1 Facade: `GameFacade` as the single entry point for the interfaces
+  -> implemented as designed: setup (`addCharacter`, `addCustomCharacter`, `removeCharacter`), `startAdventure`,
+  `submitAction`, `undo`, `save`, `load`, `listSaves`, plus `attach` for views
+  -> the facade also builds and wires the engine, rule engine, tool registry, agent, memory and saving, so
+  neither the CLI nor the GUI needs to know how they fit together. Facade pattern matches Stage 1.
+- The CLI was a box in the design -> `CliSession` reads commands and prints results, and talks only to `GameFacade`
+  -> lets the CLI and the GUI share all game logic and stay thin
+  -> input and output are passed in, so whole sessions are tested with scripted input and a fake model.
+- Commands were unspecified -> slash commands (`/add`, `/custom`, `/remove`, `/party`, `/start`, `/status`,
+  `/undo`, `/save`, `/load`, `/saves`, `/help`, `/quit`); any other text while playing is the party's action
+  -> keeps free-text play simple and still allows every feature
+  -> F01 is `/start`, F02 is `/add`, F03 is `/custom`, undo is `/undo`, save and load are `/save` and `/load`.
+- The AI's decisions were invisible -> each turn prints the rules lines (`[rules] attack: ...`) after the narration
+  -> shows that dice and damage come from the engine, which is also what the demo videos need to show
+  -> display only.
+- Names were not required to be unique -> the facade rejects a second character with the same name
+  -> the AI refers to characters by name, so duplicates would be ambiguous
+  -> new rule; enemies may still share a name (two wolves).
+- Party editing had no stage -> the party can only change before the adventure starts
+  -> changing it mid-story would confuse the AI's memory and the saved game
+  -> `addCharacter`, `addCustomCharacter` and `removeCharacter` throw after `startAdventure` or a load.
+- Custom stat entry was unspecified -> `StatInput` reads lines like `STR 5 DEX 3` (three-letter names, or full names)
+  -> a text interface needs a compact way to spend 20 points
+  -> new package-private helper; the factory still enforces the 20-point rule.
+- Undo semantics -> `/undo` reverses the last damage or flee only; the narration and story memory are not rewound
+  -> memory is a summary of what was said, not a state that can be rolled back
+  -> documented limit.
+- Run command added to `pom.xml` (exec plugin, main class `gamemaster.cli.CliApp`)
+  -> a reviewer must be able to launch the game from the README
+  -> `mvn -q compile exec:java`.
+- Saving needs a valid party -> `save` is refused until at least one character exists
+  -> an empty party cannot be loaded back
+  -> small guard.
+
+## Fix: scenario JSON parsing (defect found in the first live CLI run)
+
+- Original: `ScenarioGenerator` cut the reply from the first `{` to the last `}` and parsed that
+  -> the real model's reply failed twice with "not valid JSON" (extra text or braces around the object)
+  -> the JSON object is now found by matching braces (ignoring braces inside quoted text), so text before
+  or after it, or a second object, no longer breaks parsing; a reply that never closes is reported as cut off
+  -> the retry message now carries the parser's reason, and the final error shows the start of the reply
+  so a failure can be diagnosed instead of guessed at.
+- The prompt did not say how to quote text -> it now asks for single quotes inside values and no line breaks
+  -> unescaped double quotes inside a description are a common way a model produces invalid JSON
+  -> prompt change only.
+
 ## Still to log (later commits)
 
-- CLI, GUI and `GameFacade`.
+- GUI.
 - Updated class diagram, plus sequence diagrams that changed.
