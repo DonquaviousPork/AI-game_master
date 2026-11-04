@@ -40,7 +40,7 @@ Swing GUI (dark green theme, story pane, party and enemy cards with health bars)
 
     mvn -q compile exec:java -Dexec.mainClass=gamemaster.gui.GuiApp
 
-Or run `gamemaster.gui.GuiApp` from your IDE. Both front ends use the same `GameFacade`.
+Or run `gamemaster.gui.GuiApp` from your IDE. Both front ends use the same `GameFacade`. Use the View menu (or Ctrl+D / Ctrl+L) to switch between dark and light mode.
 
 To check that your key and model work without playing, run `gamemaster.ai.LiveCheck`
 from your IDE. It makes one real model call and prints a generated scenario.

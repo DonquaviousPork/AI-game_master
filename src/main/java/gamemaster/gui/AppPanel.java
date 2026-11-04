@@ -32,4 +32,8 @@ final class AppPanel extends JPanel {
     }
 
     GamePanel playScreen() { return play; }
+
+    void showPlay() { cards.show(this, PLAY); }
+
+    boolean isShowingPlay() { return play.isVisible(); }
 }

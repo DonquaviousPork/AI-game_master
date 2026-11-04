@@ -13,6 +13,7 @@ import javax.swing.SwingUtilities;
 public class GuiApp {
 
     public static void main(String[] args) {
+        GuiTheme.setPalette(GuiTheme.savedMode());
         GuiTheme.install();
         GameFacade game;
         try {

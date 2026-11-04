@@ -334,11 +334,38 @@ final class GamePanel extends BackdropPanel implements GameView {
 
     private enum Style { HEADING, NARRATION, SCENE, PLAYER, RULES, ENDING }
 
+    /** One paragraph of the story as it was written, kept so the screen can be redrawn in another colour mode. */
+    record StoryEntry(String text, String style) {}
+
+    private final List<StoryEntry> entries = new java.util.ArrayList<>();
+
     private void clearStory() {
         story.setText("");
+        entries.clear();
     }
 
+    /** The story so far, for carrying across a rebuild of the window. */
+    List<StoryEntry> exportStory() { return List.copyOf(entries); }
+
+    /** Redraws a story exported from an earlier panel, with the current colours. */
+    void importStory(List<StoryEntry> saved, boolean unsavedProgress) {
+        clearStory();
+        for (StoryEntry e : saved) {
+            paragraph(e.text(), Style.valueOf(e.style()));
+        }
+        endingShown = saved.stream().anyMatch(e -> e.style().equals(Style.ENDING.name()));
+        unsaved = unsavedProgress;
+        setStatus(over ? "The story has ended." : "What do you do?", GuiTheme.MUTED);
+        render(GameViewModel.from(game.getState()));
+    }
+
+    boolean isBusy() { return busy; }
+
+    /** Stops listening to the game; used when the window is rebuilt and this panel is replaced. */
+    void detach() { game.getState().detach(this); }
+
     private void paragraph(String text, Style style) {
+        entries.add(new StoryEntry(text, style.name()));
         StyledDocument doc = story.getStyledDocument();
         SimpleAttributeSet a = new SimpleAttributeSet();
         switch (style) {
@@ -360,7 +387,7 @@ final class GamePanel extends BackdropPanel implements GameView {
                 StyleConstants.setFontFamily(a, GuiTheme.serif(0, 12).getFamily());
                 StyleConstants.setFontSize(a, 17);
                 StyleConstants.setItalic(a, true);
-                StyleConstants.setForeground(a, new Color(0xC9D8CF));
+                StyleConstants.setForeground(a, GuiTheme.SCENE_TEXT);
                 StyleConstants.setLineSpacing(a, 0.25f);
                 StyleConstants.setSpaceBelow(a, 12f);
             }
@@ -414,7 +441,7 @@ final class GamePanel extends BackdropPanel implements GameView {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             boolean combat = "COMBAT".equals(getText());
-            g2.setColor(combat ? new Color(0x5A2433) : GuiTheme.PURPLE_DARK);
+            g2.setColor(combat ? GuiTheme.COMBAT_FILL : GuiTheme.PURPLE_DARK);
             g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
             g2.setColor(combat ? GuiTheme.HEALTH_LOW : GuiTheme.PURPLE);
             g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, getHeight(), getHeight());

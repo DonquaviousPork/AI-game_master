@@ -50,7 +50,7 @@ final class HealthBar extends JComponent {
         g2.setFont(GuiTheme.sans(java.awt.Font.BOLD, 11f));
         String label = health + "/" + max;
         FontMetrics fm = g2.getFontMetrics();
-        g2.setColor(health * 2 > max ? GuiTheme.BG : GuiTheme.TEXT);
+        g2.setColor(health * 2 > max ? GuiTheme.ON_BAR : GuiTheme.TEXT);
         g2.drawString(label, (w - fm.stringWidth(label)) / 2, (h - fm.getHeight()) / 2 + fm.getAscent());
         g2.dispose();
     }

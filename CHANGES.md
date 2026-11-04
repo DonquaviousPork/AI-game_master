@@ -282,6 +282,14 @@ the git history; this file is the design-level record.
 - `MainWindow` no longer closes straight away. If there is unsaved progress it asks "Save and quit", "Quit without saving" or "Cancel". If the save is cancelled or fails, the window stays open.
 - Test: `GuiSmokeTest` checks the unsaved flag across begin, mark and load. The dialog itself is not tested because it needs a real display.
 
+## Commit 15: dark and light mode, readable dialogs and menus
+- Problem: some dialog buttons, menu items and pop-ups used Swing's default light colours under light text.
+- `GuiTheme` now holds two palettes (`Mode.DARK`, `Mode.LIGHT`) and a custom Metal theme built from the active palette, so every standard component (dialogs, menus, pop-ups, buttons, lists, tool tips) takes its colours and fonts from one place.
+- New View menu with Dark mode and Light mode (Ctrl+D, Ctrl+L). The choice is remembered between runs.
+- Switching rebuilds the window. The game lives in `GameFacade`, so only the story text, the screen being shown and the unsaved-progress flag are carried over (`GamePanel.exportStory`, `importStory`, `detach`). Switching is refused while the game master is mid-turn.
+- `GuiThemeTest` checks the text and background pairs the app uses (about 20 of them) against a WCAG contrast ratio, in both modes, so a light-on-light colour fails the build.
+- `GuiSmokeTest` builds and paints both modes and checks the story survives a rebuild.
+
 ## Still to log (later commits)
 
 - Updated class diagram, plus sequence diagrams that changed.

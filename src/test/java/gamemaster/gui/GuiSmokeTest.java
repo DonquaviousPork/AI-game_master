@@ -80,4 +80,34 @@ class GuiSmokeTest {
         assertTrue(setupColours[0] > 20, "setup screen looks blank: " + setupColours[0]);
         assertTrue(playColours[0] > 20, "play screen looks blank: " + playColours[0]);
     }
+
+    @Test
+    void bothColourModesBuildAndPaintAndTheStorySurvivesASwitch() throws Exception {
+        for (GuiTheme.Mode mode : GuiTheme.Mode.values()) {
+            GuiTheme.setPalette(mode);
+            GuiTheme.install();
+            GameFacade game = new GameFacade(new FakeLLM(SCENARIO),
+                    new SaveService(new SaveRepository(Files.createTempDirectory("gui"))), new RuleEngine(new FixedDice()));
+            game.addCharacter("Brenna", "Fighter");
+            AppPanel[] app = new AppPanel[1];
+            int[] colours = new int[1];
+            SwingUtilities.invokeAndWait(() -> {
+                app[0] = new AppPanel(game);
+                app[0].playScreen().begin(game.startAdventure("crypt"));
+                colours[0] = colourCount(app[0].playScreen());
+            });
+            assertTrue(colours[0] > 20, mode + " play screen looks blank");
+            var story = app[0].playScreen().exportStory();
+            assertFalse(story.isEmpty());
+            SwingUtilities.invokeAndWait(() -> {
+                app[0].playScreen().detach();
+                AppPanel rebuilt = new AppPanel(game);
+                rebuilt.playScreen().importStory(story, true);
+                assertEquals(story, rebuilt.playScreen().exportStory());
+                assertTrue(rebuilt.playScreen().hasUnsavedProgress());
+            });
+        }
+        GuiTheme.setPalette(GuiTheme.Mode.DARK);
+        GuiTheme.install();
+    }
 }

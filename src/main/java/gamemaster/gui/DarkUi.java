@@ -57,7 +57,7 @@ final class DarkUi {
             }
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(isThumbRollover() ? GuiTheme.PURPLE_DARK : GuiTheme.BORDER);
+            g2.setColor(isThumbRollover() ? GuiTheme.PURPLE : GuiTheme.BORDER);
             g2.fillRoundRect(r.x + 2, r.y, r.width - 4, r.height, 8, 8);
             g2.dispose();
         }
