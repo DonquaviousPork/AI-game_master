@@ -70,6 +70,13 @@ class GuiSmokeTest {
         SwingUtilities.invokeAndWait(() -> setupColours[0] = colourCount(app[0]));
         SwingUtilities.invokeAndWait(() -> app[0].playScreen().begin(game.startAdventure("crypt")));
         SwingUtilities.invokeAndWait(() -> playColours[0] = colourCount(app[0].playScreen()));
+        SwingUtilities.invokeAndWait(() -> {
+            assertFalse(app[0].playScreen().hasUnsavedProgress(), "a fresh game has nothing to lose");
+            app[0].playScreen().markUnsaved();
+            assertTrue(app[0].playScreen().hasUnsavedProgress());
+            app[0].playScreen().resume();
+            assertFalse(app[0].playScreen().hasUnsavedProgress(), "loading a game starts clean");
+        });
         assertTrue(setupColours[0] > 20, "setup screen looks blank: " + setupColours[0]);
         assertTrue(playColours[0] > 20, "play screen looks blank: " + playColours[0]);
     }

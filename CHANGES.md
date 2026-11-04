@@ -277,6 +277,11 @@ the git history; this file is the design-level record.
 - `GameViewModel.Card` gained a `look` field; `HealthBar.isLow` shares the red threshold with the bar colour.
 - Tests: `SpritesTest` (grid sizes, colour keys, class and enemy mapping, grey when dead, glow rules).
 
+## Commit 14: warn before closing with unsaved progress
+- `GamePanel` tracks unsaved progress: it becomes true when the player acts or undoes, and false when the game is started, loaded or saved.
+- `MainWindow` no longer closes straight away. If there is unsaved progress it asks "Save and quit", "Quit without saving" or "Cancel". If the save is cancelled or fails, the window stays open.
+- Test: `GuiSmokeTest` checks the unsaved flag across begin, mark and load. The dialog itself is not tested because it needs a real display.
+
 ## Still to log (later commits)
 
 - Updated class diagram, plus sequence diagrams that changed.

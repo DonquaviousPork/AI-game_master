@@ -53,6 +53,7 @@ final class GamePanel extends BackdropPanel implements GameView {
     private boolean busy;
     private boolean over;
     private boolean endingShown;
+    private boolean unsaved;
 
     GamePanel(GameFacade game) {
         super(new BorderLayout(0, 14));
@@ -122,6 +123,7 @@ final class GamePanel extends BackdropPanel implements GameView {
 
     /** Called after a new adventure was created. */
     void begin(GeneratedScenario s) {
+        unsaved = false;
         clearStory();
         endingShown = false;
         paragraph(s.scenario().description(), Style.NARRATION);
@@ -136,6 +138,7 @@ final class GamePanel extends BackdropPanel implements GameView {
 
     /** Called after a saved game was loaded. */
     void resume() {
+        unsaved = false;
         clearStory();
         endingShown = false;
         GameState s = game.getState();
@@ -160,6 +163,7 @@ final class GamePanel extends BackdropPanel implements GameView {
         }
         paragraph("You: " + text, Style.PLAYER);
         input.setText("");
+        unsaved = true;
         busy = true;
         applyEnabled();
         setStatus("The game master is thinking...", GuiTheme.PURPLE_SOFT);
@@ -183,6 +187,7 @@ final class GamePanel extends BackdropPanel implements GameView {
     }
 
     private void undo() {
+        unsaved = true;
         try {
             setStatus(game.undo()
                     ? "Last action undone. Damage and fleeing are reversed; dice are not re-rolled."
@@ -192,19 +197,28 @@ final class GamePanel extends BackdropPanel implements GameView {
         }
     }
 
-    private void save() {
+    /** Asks for a name and saves. Returns true only if the game was actually saved. */
+    boolean save() {
         Object name = JOptionPane.showInputDialog(this, "Name this save (letters, digits, - and _):",
                 "Save game", JOptionPane.PLAIN_MESSAGE);
         if (name == null) {
-            return;
+            return false;
         }
         try {
             game.save(name.toString().trim());
+            unsaved = false;
             setStatus("Saved as \"" + name.toString().trim() + "\".", GuiTheme.HEALTH_OK);
+            return true;
         } catch (RuntimeException e) {
             setStatus(Background.describe(e), GuiTheme.ERROR);
+            return false;
         }
     }
+
+    /** True when the player has acted or undone something since the game was started, loaded or saved. */
+    boolean hasUnsavedProgress() { return unsaved; }
+
+    void markUnsaved() { unsaved = true; }
 
     private void load() {
         List<String> saves = game.listSaves();
