@@ -177,8 +177,38 @@ the git history; this file is the design-level record.
   -> save and load (next commits) must store and rebuild the memory
   -> small API that the Memento will use.
 
+## Commit 9: save and load, Memento pattern (F14)
+
+- Stage 1 Memento: `GameState` (originator), `GameSnapshot` (memento), `SaveRepository` (caretaker)
+  -> implemented with the same three roles: `GameState.createSnapshot` and `restore`, an immutable
+  `GameSnapshot` record, and `SaveRepository` writing JSON files
+  -> the pattern matches Stage 1; the snapshot stores plain values (names, numbers, text) instead of
+  copies of live objects, so it can be written to a file.
+- No class joined the game and the AI memory -> new `SaveService` saves and loads both together
+  -> the story memory lives in the AI layer, which `GameState` must not depend on
+  -> new class; one save slot holds the game state and the story memory.
+- Loading could half-apply a bad file -> `GameState.restore` builds and validates everything first and only then
+  swaps it in; a damaged save throws and leaves the running game untouched
+  -> a corrupt file must never wreck a game in progress
+  -> `SaveService.load` reports it as a `SaveException`.
+- Save names were unspecified -> only letters, digits, "-" and "_" (1 to 40 characters); files are written
+  to a temporary file and then moved into place
+  -> a name must not be able to point outside the `saves/` folder, and a crash must not leave a half-written save
+  -> `saves/` is already in `.gitignore`, so saves are never committed.
+- Undo history was not addressed -> it is not saved; loading clears it
+  -> actions hold live object references that a file cannot keep
+  -> documented limit: you cannot undo across a save and load.
+- Phase was part of the state -> the phase is not stored; `GameEngine.load` recomputes it from the loaded data
+  -> the phase can never disagree with the data (a loaded game with a dead party is Ended)
+  -> new method `GameEngine.load`.
+- Added `Party.replaceMembers`, `CharacterClass.byName` and `Weapon.byName`
+  -> rebuilding saved characters and monsters needs them
+  -> small additions to the model layer; only the three built-in classes and weapons can be loaded.
+- Files carry a `version` number; other versions are refused
+  -> saves written by a future format must not be misread
+  -> only version 1 exists.
+
 ## Still to log (later commits)
 
-- Save and load with the Memento pattern (F14).
 - CLI, GUI and `GameFacade`.
 - Updated class diagram, plus sequence diagrams that changed.

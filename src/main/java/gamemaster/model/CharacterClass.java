@@ -11,6 +11,19 @@ public interface CharacterClass {
     /** Returns a fresh map of default ability scores for this class. */
     Map<Stat, Integer> defaultStats();
 
+    /** Finds one of the built-in classes by name, ignoring case. */
+    static CharacterClass byName(String name) {
+        if (name != null) {
+            switch (name.trim().toLowerCase()) {
+                case "fighter": return new FighterClass();
+                case "wizard": return new WizardClass();
+                case "rogue": return new RogueClass();
+                default: break;
+            }
+        }
+        throw new IllegalArgumentException("Unknown character class: " + name);
+    }
+
     /** Convenience for building a stat map in Stat declaration order. */
     static Map<Stat, Integer> stats(int str, int dex, int con, int intel, int wis, int cha) {
         Map<Stat, Integer> m = new EnumMap<>(Stat.class);

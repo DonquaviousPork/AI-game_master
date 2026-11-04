@@ -21,4 +21,14 @@ public record Weapon(String name, int damageSides, Stat stat) {
         }
         Objects.requireNonNull(stat, "stat");
     }
+
+    /** Finds one of the built-in weapons by name, ignoring case. */
+    public static Weapon byName(String name) {
+        for (Weapon w : new Weapon[] {LONGSWORD, QUARTERSTAFF, DAGGER}) {
+            if (w.name().equalsIgnoreCase(name == null ? "" : name.trim())) {
+                return w;
+            }
+        }
+        throw new IllegalArgumentException("Unknown weapon: " + name);
+    }
 }

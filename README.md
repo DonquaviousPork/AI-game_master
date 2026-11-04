@@ -46,7 +46,8 @@ Example sessions for the CLI and GUI will be added with those interfaces.
 | `gamemaster.rules` | `RuleEngine` (ability checks, attacks, damage, saving throws) and the `Dice` interface |
 | `gamemaster.game` | `GameState`, game phases, player actions with undo, `GameEngine` |
 | `gamemaster.llm` | `LLMClient`, `OpenAIClient`, `LLMConfig`, `ChatMessage` |
-| `gamemaster.ai` | `ScenarioGenerator` and `GeneratedScenario` |
+| `gamemaster.ai` | Scenario generation, the agent loop (`AgentOrchestrator`), tools (`ToolRegistry`) and story memory (`MemoryManager`) |
+| `gamemaster.save` | `SaveRepository` and `SaveService` for saving and loading games |
 
 ## Design patterns in the code so far
 - **Factory Method:** `CharacterFactory` builds characters from classes or custom stat choices.
@@ -54,9 +55,11 @@ Example sessions for the CLI and GUI will be added with those interfaces.
 - **Command:** `Action` with `AttackAction`, `AbilityCheckAction`, `FleeAction`, and `ActionHistory` for undo.
 - **Observer:** `GameState` notifies attached `GameView`s on every change.
 - **Adapter:** `LLMClient` with `OpenAIClient` adapts any OpenAI-compatible service.
+- **Memento:** `GameSnapshot` (memento), `GameState` (originator) and `SaveRepository` (caretaker) save and restore a game.
 
 ## Status
 Work in progress. Done so far: characters and party, dice rules, monsters, the
-game engine with phases and undo, and AI scenario generation. Still to come: the
-AI agent loop with tools and memory, save and load, the CLI and the GUI.
+game engine with phases and undo, AI scenario generation, the AI agent loop with
+tools and story memory, and save and load. Still to come: the CLI and the GUI.
+Saved games are written to a `saves/` folder, which is ignored by git.
 See `CHANGES.md` for every difference from the Stage 1 design.

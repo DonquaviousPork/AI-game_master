@@ -73,6 +73,13 @@ public class GameEngine {
         advancePhase();
     }
 
+    /** Loads a saved game into the current state, drops the undo history and moves to the right phase. */
+    public void load(GameSnapshot snapshot) {
+        state.restore(snapshot);
+        history.clear();
+        advancePhase();
+    }
+
     public boolean checkEndCondition() {
         return state.isConcluded() || state.getParty().isDefeated();
     }

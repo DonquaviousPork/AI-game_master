@@ -31,6 +31,20 @@ public class Party {
         characters.remove(c);
     }
 
+    /** Swaps in a whole new set of members (used when a saved game is loaded). Validates before changing anything. */
+    public void replaceMembers(List<Character> members) {
+        Objects.requireNonNull(members, "members");
+        if (members.size() < MIN_SIZE || members.size() > MAX_SIZE) {
+            throw new IllegalArgumentException("A party needs " + MIN_SIZE + " to " + MAX_SIZE
+                    + " characters, not " + members.size() + ".");
+        }
+        if (members.stream().anyMatch(Objects::isNull)) {
+            throw new IllegalArgumentException("A party member must not be null.");
+        }
+        characters.clear();
+        characters.addAll(members);
+    }
+
     /** True when the party size is within the allowed range. */
     public boolean isValidSize() {
         return characters.size() >= MIN_SIZE && characters.size() <= MAX_SIZE;
