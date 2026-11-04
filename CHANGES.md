@@ -131,9 +131,30 @@ the git history; this file is the design-level record.
   -> attacks need a weapon and Stage 1 did not say where it comes from
   -> lives in `Lookup.weaponOf`; revisit if players should choose weapons.
 
+## Commit 7: agent loop (F06, F12)
+
+- The Stage 1 sequence diagrams showed the AI reply going straight to the game
+  -> `AgentOrchestrator.takeTurn` runs a bounded loop: show the model the real state, let it request
+  tools, run them through `ToolRegistry`, feed the results back, repeat until it narrates
+  -> this is the multi-step, tool-using agent behavior; the AI proposes, the registry and engine decide.
+- No limit on AI activity was specified -> at most 6 model rounds and 8 tool runs per turn; if the model
+  keeps asking for tools it is made to narrate without them
+  -> a confused or misbehaving model must not loop forever or flood the game
+  -> extra tool requests receive an "Error: too many actions" result instead of running.
+- The model had to remember the game -> `StateDescriber` sends the true party, enemy, phase, scene and recent
+  event list every turn
+  -> the model never has to guess or recall hit points
+  -> new package-private class; the full story memory is a later commit.
+- Narration was plain text -> `TurnResult` carries the narration, one line per tool the game ran, and a game-over flag
+  -> the CLI and GUI need to show both the story and what the rules actually did
+  -> new record; the narration becomes the engine's current scene.
+- Models use typographic hyphens and quotes some consoles show as "?" -> `TextCleaner` replaces them with plain characters
+  -> seen during the live test
+  -> small helper; no design impact.
+
 ## Still to log (later commits)
 
-- Agent loop and memory (F11, F13).
+- Story memory (F11, F13).
 - Save and load with the Memento pattern (F14).
 - CLI, GUI and `GameFacade`.
 - Updated class diagram, plus sequence diagrams that changed.
