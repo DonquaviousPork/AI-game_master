@@ -256,7 +256,15 @@ the git history; this file is the design-level record.
   -> unescaped double quotes inside a description are a common way a model produces invalid JSON
   -> prompt change only.
 
+## Commit 11: Swing GUI
+- New package `gamemaster.gui`. `GuiApp` starts it; `MainWindow` holds `AppPanel`, which switches between `SetupPanel` (build the party, enter a theme, begin or load) and `GamePanel` (story, party and enemy cards, input, Act/Undo/Save/Load).
+- `GamePanel` implements `GameView`, so it is an Observer of `GameState` like the CLI. `update` may run on a worker thread, so it builds an immutable `GameViewModel` and renders it on the Swing event thread.
+- Model calls (scenario, turns, save, load) run in `Background`, a `SwingWorker` helper, so the window never freezes. Buttons are disabled while a call runs.
+- `CustomCharacterDialog` lets the player spend exactly 20 points (0 to 7 per stat) on a custom hero, using the same `CharacterFactory` rules.
+- Styling is in `GuiTheme` plus small components (`StyledButton`, `HealthBar`, `CombatantCard`, `BackdropPanel`, `DarkUi`): dark green with a purple glow, `[rules]` lines in teal, health bars that turn amber below half and red when low.
+- The GUI contains no game rules. It only calls `GameFacade`, as the Stage 1 design says.
+- Tests: `GameViewModelTest` (view model and bar colours) and `GuiSmokeTest` (builds and paints both screens headless).
+
 ## Still to log (later commits)
 
-- GUI.
 - Updated class diagram, plus sequence diagrams that changed.

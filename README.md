@@ -35,7 +35,12 @@ Command-line game (run from the project folder, where `.env` is):
     mvn -q compile exec:java
 
 Or open `src/main/java/gamemaster/cli/CliApp.java` in your IDE and run its `main` method.
-The GUI launch command will be added with the GUI.
+
+Swing GUI (dark green theme, story pane, party and enemy cards with health bars):
+
+    mvn -q compile exec:java -Dexec.mainClass=gamemaster.gui.GuiApp
+
+Or run `gamemaster.gui.GuiApp` from your IDE. Both front ends use the same `GameFacade`.
 
 To check that your key and model work without playing, run `gamemaster.ai.LiveCheck`
 from your IDE. It makes one real model call and prints a generated scenario.
@@ -69,6 +74,7 @@ narrates and requests actions.
 | `gamemaster.ai` | Scenario generation, the agent loop (`AgentOrchestrator`), tools (`ToolRegistry`) and story memory (`MemoryManager`) |
 | `gamemaster.app` | `GameFacade`, the single entry point used by the CLI and GUI |
 | `gamemaster.cli` | `CliSession` and `CliApp`, the command-line game |
+| `gamemaster.gui` | Swing GUI: `GuiApp`, `MainWindow`, `SetupPanel`, `GamePanel` (a `GameView`), `GuiTheme` |
 | `gamemaster.save` | `SaveRepository` and `SaveService` for saving and loading games |
 
 ## Design patterns in the code so far
@@ -83,7 +89,6 @@ narrates and requests actions.
 ## Status
 Work in progress. Done so far: characters and party, dice rules, monsters, the
 game engine with phases and undo, AI scenario generation, the AI agent loop with
-tools and story memory, save and load, the facade and the command-line game.
-Still to come: the GUI.
+tools and story memory, save and load, the facade, the command-line game and the Swing GUI.
 Saved games are written to a `saves/` folder, which is ignored by git.
 See `CHANGES.md` for every difference from the Stage 1 design.
