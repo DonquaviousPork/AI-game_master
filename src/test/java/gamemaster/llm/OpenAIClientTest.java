@@ -101,4 +101,14 @@ class OpenAIClientTest {
         assertEquals("roll_check", r.toolCalls().get(0).name());
         assertEquals("{\"character\":\"Mira\"}", r.toolCalls().get(0).argumentsJson());
     }
+
+    @Test
+    void retryAfterIsHonouredCappedAndDefaulted() {
+        assertEquals(3000L, OpenAIClient.waitMillis("3"));
+        assertEquals(1500L, OpenAIClient.waitMillis("1.5"));
+        assertEquals(OpenAIClient.MAX_WAIT_MS, OpenAIClient.waitMillis("600"));
+        assertEquals(OpenAIClient.DEFAULT_WAIT_MS, OpenAIClient.waitMillis(null));
+        assertEquals(OpenAIClient.DEFAULT_WAIT_MS, OpenAIClient.waitMillis("soon"));
+        assertEquals(OpenAIClient.DEFAULT_WAIT_MS, OpenAIClient.waitMillis("-4"));
+    }
 }

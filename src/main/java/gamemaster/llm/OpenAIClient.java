@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.LongConsumer;
 
 /**
  * Adapter for any OpenAI-compatible chat-completions endpoint (Groq, OpenRouter,
@@ -24,16 +25,51 @@ public class OpenAIClient implements LLMClient {
 
     private static final double TEMPERATURE = 0.8;
 
+    /** How many times a rate-limited (HTTP 429) request is retried before giving up. */
+    static final int MAX_RATE_LIMIT_RETRIES = 2;
+    static final long DEFAULT_WAIT_MS = 5_000;
+    static final long MAX_WAIT_MS = 20_000;
+
     private final LLMConfig config;
     private final HttpClient http;
+    private final LongConsumer sleeper;
 
     public OpenAIClient(LLMConfig config) {
         this(config, HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build());
     }
 
     OpenAIClient(LLMConfig config, HttpClient http) {
+        this(config, http, OpenAIClient::sleepMillis);
+    }
+
+    OpenAIClient(LLMConfig config, HttpClient http, LongConsumer sleeper) {
         this.config = Objects.requireNonNull(config, "config");
         this.http = Objects.requireNonNull(http, "http");
+        this.sleeper = Objects.requireNonNull(sleeper, "sleeper");
+    }
+
+    private static void sleepMillis(long ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new LLMException("The request was interrupted.", e);
+        }
+    }
+
+    /** Milliseconds to wait after a 429: the server's Retry-After seconds, capped, or a default when absent. */
+    static long waitMillis(String retryAfterSeconds) {
+        if (retryAfterSeconds != null) {
+            try {
+                double seconds = Double.parseDouble(retryAfterSeconds.trim());
+                if (seconds >= 0) {
+                    return Math.min(MAX_WAIT_MS, (long) Math.ceil(seconds * 1000));
+                }
+            } catch (NumberFormatException ignored) {
+                // fall through to the default
+            }
+        }
+        return DEFAULT_WAIT_MS;
     }
 
     @Override
@@ -46,6 +82,10 @@ public class OpenAIClient implements LLMClient {
                 .build();
         try {
             HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+            for (int retry = 0; response.statusCode() == 429 && retry < MAX_RATE_LIMIT_RETRIES; retry++) {
+                sleeper.accept(waitMillis(response.headers().firstValue("Retry-After").orElse(null)));
+                response = http.send(request, HttpResponse.BodyHandlers.ofString());
+            }
             return parseResponse(response.statusCode(), response.body());
         } catch (IOException e) {
             throw new LLMException("Could not reach the model service: " + e.getMessage(), e);

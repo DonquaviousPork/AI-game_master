@@ -265,6 +265,18 @@ the git history; this file is the design-level record.
 - The GUI contains no game rules. It only calls `GameFacade`, as the Stage 1 design says.
 - Tests: `GameViewModelTest` (view model and bar colours) and `GuiSmokeTest` (builds and paints both screens headless).
 
+## Commit 12: rollback on failed turns and rate-limit retry (defect found in the first live GUI run)
+- Defect: a rate limit (HTTP 429) during a turn threw away the turn's results, but the attacks the model had already run stayed applied, so health bars no longer matched the story log.
+- `AgentOrchestrator.takeTurn` now snapshots the game first (Memento) and restores it if the turn fails, so a failed turn changes nothing and can be resubmitted. The undo history is cleared after a rollback, as it is on Load.
+- `OpenAIClient` retries a 429 up to twice, waiting for the server's `Retry-After` (capped at 20 seconds, 5 seconds when absent), before reporting the error.
+- Tests: rollback after a failed turn, retry of the same action, and the wait-time rules.
+
+## Commit 13: pixel characters on the cards
+- Each hero and enemy card now shows a small pixel sprite drawn in code (`Sprites`, `SpriteIcon`), so there are no image files. Heroes are drawn by class (Fighter, Rogue, Wizard, or a plain Adventurer for custom builds) with a palette picked from their name. Enemies are sorted by name and weapon into Soldier, Beast, Undead or Robed.
+- A defeated character is drawn in grey. A living one at a quarter of maximum health or less (the same point where the health bar turns red) glows red. Everyone else is drawn normally.
+- `GameViewModel.Card` gained a `look` field; `HealthBar.isLow` shares the red threshold with the bar colour.
+- Tests: `SpritesTest` (grid sizes, colour keys, class and enemy mapping, grey when dead, glow rules).
+
 ## Still to log (later commits)
 
 - Updated class diagram, plus sequence diagrams that changed.

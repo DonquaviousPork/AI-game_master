@@ -17,7 +17,7 @@ final class CombatantCard extends JPanel {
     private final boolean alive;
 
     CombatantCard(GameViewModel.Card card, Color accent) {
-        super(new BorderLayout(0, 6));
+        super(new BorderLayout(8, 0));
         this.accent = accent;
         this.alive = card.alive();
         setOpaque(false);
@@ -35,8 +35,17 @@ final class CombatantCard extends JPanel {
         top.setOpaque(false);
         top.add(name, BorderLayout.NORTH);
         top.add(detail, BorderLayout.SOUTH);
-        add(top, BorderLayout.NORTH);
-        add(new HealthBar(card.health(), card.maxHealth()), BorderLayout.SOUTH);
+        JPanel text = new JPanel(new BorderLayout(0, 6));
+        text.setOpaque(false);
+        text.add(top, BorderLayout.NORTH);
+        text.add(new HealthBar(card.health(), card.maxHealth()), BorderLayout.SOUTH);
+        SpriteIcon sprite = new SpriteIcon(card.look(), card.name(), card.alive(),
+                HealthBar.isLow(card.health(), card.maxHealth()));
+        JPanel spriteBox = new JPanel(new java.awt.GridBagLayout());
+        spriteBox.setOpaque(false);
+        spriteBox.add(sprite);
+        add(spriteBox, BorderLayout.WEST);
+        add(text, BorderLayout.CENTER);
         setBorder(BorderFactory.createCompoundBorder(getBorder(), BorderFactory.createEmptyBorder()));
     }
 

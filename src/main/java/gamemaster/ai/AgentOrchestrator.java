@@ -1,6 +1,7 @@
 package gamemaster.ai;
 
 import gamemaster.game.GameEngine;
+import gamemaster.game.GameSnapshot;
 import gamemaster.game.StoryEvent;
 import gamemaster.llm.ChatMessage;
 import gamemaster.llm.LLMClient;
@@ -65,6 +66,21 @@ public class AgentOrchestrator {
             throw new IllegalStateException("The game is over.");
         }
 
+        // If anything fails part-way (a rate limit, a network drop), put the game back exactly as it was,
+        // so the player is never left with damage the story never showed. Restoring swaps in new character
+        // objects, so the undo history (which points at the old ones) is cleared, as it is on Load.
+        GameSnapshot before = engine.getState().createSnapshot("", List.of());
+        try {
+            return runTurn(playerInput);
+        } catch (RuntimeException e) {
+            engine.getState().restore(before);
+            engine.getHistory().clear();
+            engine.advancePhase();
+            throw e;
+        }
+    }
+
+    private TurnResult runTurn(String playerInput) {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(ChatMessage.system(SYSTEM_PROMPT));
         String remembered = memory.asPromptText();

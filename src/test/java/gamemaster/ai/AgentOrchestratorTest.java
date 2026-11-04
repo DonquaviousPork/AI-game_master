@@ -239,4 +239,27 @@ class AgentOrchestratorTest {
         agent.takeTurn("I look under it");
         assertTrue(llm.calls.get(2).get(1).content().contains("Rules: roll_check:"));
     }
+
+    @Test
+    void aFailedTurnRollsBackDamageThatAlreadyHappened() {
+        GameEngine e = engine(20, 15); // a hit for damage, then the model call fails (no reply scripted)
+        e.addMonster(new gamemaster.model.Monster("Wolf", 10, 12, gamemaster.model.Weapon.DAGGER));
+        int before = fighter.getHealth();
+        String log = String.valueOf(e.getState().getLog());
+        FakeLLM llm = new FakeLLM().thenTool("attack", "{\"attacker\":\"Wolf\",\"target\":\"Brenna\"}");
+        assertThrows(IllegalStateException.class, () -> new AgentOrchestrator(llm, e).takeTurn("I wait"));
+        assertEquals(before, e.getState().getParty().getCharacters().get(0).getHealth());
+        assertEquals(log, String.valueOf(e.getState().getLog()));
+        assertEquals("You stand at the grove's edge.", e.getState().getCurrentEvent().description());
+        assertEquals("Combat", e.getState().getPhase().name());
+    }
+
+    @Test
+    void afterARollbackTheSameActionCanBeTriedAgain() {
+        GameEngine e = engine();
+        AgentOrchestrator agent = new AgentOrchestrator(new FakeLLM().thenTool("roll_check", CHECK), e);
+        assertThrows(IllegalStateException.class, () -> agent.takeTurn("I push the door"));
+        AgentOrchestrator again = new AgentOrchestrator(new FakeLLM("The door gives way."), e);
+        assertEquals("The door gives way.", again.takeTurn("I push the door").narration());
+    }
 }

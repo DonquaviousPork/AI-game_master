@@ -21,6 +21,11 @@ final class HealthBar extends JComponent {
         setPreferredSize(new Dimension(200, 18));
     }
 
+    /** True when the bar is in its red zone (a quarter of maximum health or less). */
+    static boolean isLow(int health, int max) {
+        return max > 0 && (double) health / max <= 0.25;
+    }
+
     static Color colourFor(int health, int max) {
         double ratio = max <= 0 ? 0 : (double) health / max;
         if (ratio > 0.5) {
