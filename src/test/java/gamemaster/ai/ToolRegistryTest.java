@@ -45,9 +45,9 @@ class ToolRegistryTest {
     // ---- registry ----
 
     @Test
-    void offersFourToolsWithSchemas() {
+    void offersFiveToolsWithSchemas() {
         var specs = ToolRegistry.defaultFor(engine()).specs();
-        assertEquals(java.util.List.of("roll_check", "attack", "spawn_monster", "end_story"),
+        assertEquals(java.util.List.of("roll_check", "attack", "saving_throw", "spawn_monster", "end_story"),
                 specs.stream().map(s -> s.name()).toList());
         specs.forEach(s -> assertEquals("object", s.parameters().get("type").getAsString()));
     }
@@ -191,5 +191,49 @@ class ToolRegistryTest {
         run(e, "spawn_monster", "{\"name\":\"Bad\"}");
         assertEquals(1, e.getState().getMonsters().size());
         assertEquals(10, wolf.getHealth());
+    }
+
+    // ---- saving_throw ----
+
+    private static final String SAVE = "{\"character\":\"Brenna\",\"stat\":\"CONSTITUTION\",\"difficulty\":20,"
+            + "\"damage_on_fail\":5,\"hazard\":\"the falling rocks\"}";
+
+    @Test
+    void aFailedSaveAppliesTheDamageAndReportsIt() {
+        GameEngine e = started(1);
+        int before = fighter.getHealth();
+        String r = run(e, "saving_throw", SAVE);
+        assertTrue(r.contains("saving throw against the falling rocks"), r);
+        assertTrue(r.contains("failed, takes 5 damage"), r);
+        assertEquals(before - 5, fighter.getHealth());
+        assertTrue(r.contains(fighter.getHealth() + "/" + fighter.getMaxHealth() + " HP"), r);
+    }
+
+    @Test
+    void aSuccessfulSaveTakesNoDamage() {
+        GameEngine e = started(20);
+        int before = fighter.getHealth();
+        String r = run(e, "saving_throw", "{\"character\":\"Brenna\",\"stat\":\"CONSTITUTION\",\"difficulty\":5,\"damage_on_fail\":9}");
+        assertTrue(r.contains("saved."), r);
+        assertEquals(before, fighter.getHealth());
+    }
+
+    @Test
+    void undoRestoresTheHealthLostToAFailedSave() {
+        GameEngine e = started(1);
+        int before = fighter.getHealth();
+        run(e, "saving_throw", SAVE);
+        e.undoLast();
+        assertEquals(before, fighter.getHealth());
+    }
+
+    @Test
+    void badSaveRequestsBecomeErrorsAndChangeNothing() {
+        GameEngine e = started(1);
+        int before = fighter.getHealth();
+        assertTrue(run(e, "saving_throw", "{\"character\":\"Nobody\",\"stat\":\"CONSTITUTION\"}").contains("No one named"));
+        assertTrue(run(e, "saving_throw", "{\"character\":\"Brenna\",\"stat\":\"LUCK\"}").startsWith("Error:"));
+        assertTrue(run(e, "saving_throw", "{\"character\":\"Brenna\",\"stat\":\"CONSTITUTION\",\"damage_on_fail\":99}").startsWith("Error:"));
+        assertEquals(before, fighter.getHealth());
     }
 }

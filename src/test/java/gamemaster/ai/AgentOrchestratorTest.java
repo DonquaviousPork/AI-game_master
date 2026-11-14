@@ -45,7 +45,7 @@ class AgentOrchestratorTest {
         TurnResult r = new AgentOrchestrator(llm, e).takeTurn("I look around");
         assertEquals("The wind rustles the leaves.", r.narration());
         assertEquals(1, llm.calls.size());
-        assertEquals(4, llm.toolsOffered.get(0).size());
+        assertEquals(5, llm.toolsOffered.get(0).size());
         assertTrue(r.toolActivity().isEmpty());
         assertFalse(r.gameOver());
     }

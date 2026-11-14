@@ -25,6 +25,7 @@ public class ToolRegistry {
         ToolRegistry registry = new ToolRegistry();
         registry.register(new RollCheckTool(engine));
         registry.register(new AttackTool(engine));
+        registry.register(new SavingThrowTool(engine));
         registry.register(new SpawnMonsterTool(engine));
         registry.register(new EndStoryTool(engine));
         return registry;

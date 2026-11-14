@@ -29,6 +29,7 @@ public class AgentOrchestrator {
             Rules you must follow:
             - Never invent dice rolls, damage, hit points or whether an attempt succeeds. When a hero
               attempts something uncertain, call roll_check. When anyone attacks, call attack.
+              When a hero must resist a trap, spell or other hazard, call saving_throw.
               Use only the numbers and outcomes the tools report.
             - During combat, resolve the player's action first, then make each living enemy attack once
               with the attack tool, then narrate the round.

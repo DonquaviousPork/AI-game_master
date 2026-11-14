@@ -3,7 +3,7 @@ package gamemaster.game;
 /** Exploration and narration: only ability checks make sense here. */
 public class StoryPhase implements GamePhase {
     @Override public String name() { return "Story"; }
-    @Override public boolean allows(ActionKind kind) { return kind == ActionKind.ABILITY_CHECK; }
+    @Override public boolean allows(ActionKind kind) { return kind == ActionKind.ABILITY_CHECK || kind == ActionKind.SAVING_THROW; }
 
     @Override
     public GamePhase next(GameState s) {

@@ -290,6 +290,12 @@ the git history; this file is the design-level record.
 - `GuiThemeTest` checks the text and background pairs the app uses (about 20 of them) against a WCAG contrast ratio, in both modes, so a light-on-light colour fails the build.
 - `GuiSmokeTest` builds and paints both modes and checks the story survives a rebuild.
 
+## Commit 16: saving throws in play (F10)
+- Gap found while preparing the Stage 2 report: `RuleEngine.rollSavingThrow` existed but nothing in the game called it, so F10 never happened in play.
+- New `SavingThrowAction` (Command pattern, like `AttackAction`): the target rolls d20 plus a stat modifier against a difficulty; on failure the hazard's damage is applied, and `undo` restores exactly the health lost. New `ActionKind.SAVING_THROW`, allowed in both Story and Combat phases.
+- New AI tool `saving_throw` (`SavingThrowTool`, registered in `ToolRegistry`) so the game master can call for a save against a trap, spell or poison; damage is capped at 10 and the engine, not the model, rolls and applies it. The agent's system prompt now tells the model when to use it.
+- Tests: save failure applies damage and reports HP, success takes none, undo restores health, bad requests become errors without changing state, and the registry now offers five tools.
+
 ## Still to log (later commits)
 
 - Updated class diagram, plus sequence diagrams that changed.
