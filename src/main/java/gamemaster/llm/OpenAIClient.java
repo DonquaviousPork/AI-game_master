@@ -112,6 +112,15 @@ public class OpenAIClient implements LLMClient {
         }
     }
 
+    /** The Retry-After value in whole seconds, or 0 when absent or unreadable. */
+    static long secondsAdvised(String retryAfterSeconds) {
+        try {
+            return retryAfterSeconds == null ? 0 : (long) Math.ceil(Double.parseDouble(retryAfterSeconds.trim()));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
     /** Milliseconds to wait after a 429: the server's Retry-After seconds, capped, or a default when absent. */
     static long waitMillis(String retryAfterSeconds) {
         if (retryAfterSeconds != null) {
@@ -141,7 +150,13 @@ public class OpenAIClient implements LLMClient {
             long waited = 0;
             for (int retry = 0; response.statusCode() == 429 && retry < MAX_RATE_LIMIT_RETRIES
                     && waited < MAX_TOTAL_WAIT_MS; retry++) {
-                long wait = waitMillis(response.headers().firstValue("Retry-After").orElse(null)) + 500;
+                String header = response.headers().firstValue("Retry-After").orElse(null);
+                long advised = secondsAdvised(header);
+                if (advised > MAX_WAIT_MS / 1000) {
+                    throw new LLMException("Daily limit reached: the service asks for a wait of about "
+                            + Math.max(1, advised / 60) + " minutes. Wait, or switch model or key in .env.");
+                }
+                long wait = waitMillis(header) + 500;
                 waited += wait;
                 waitOut(wait);
                 response = http.send(request, HttpResponse.BodyHandlers.ofString());
