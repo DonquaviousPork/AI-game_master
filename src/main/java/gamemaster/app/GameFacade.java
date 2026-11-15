@@ -88,8 +88,9 @@ public class GameFacade {
         if (!state.getParty().isValidSize()) {
             throw new IllegalStateException("Add 1 to " + Party.MAX_SIZE + " characters before starting.");
         }
-        GeneratedScenario scenario = new ScenarioGenerator(llm).generate(theme);
+        GeneratedScenario scenario = new ScenarioGenerator(llm).generate(theme, demoMode);
         state.setTurnLimit(turnLimit);
+        state.setEasyWin(demoMode);
         scenario.applyTo(engine);
         state.addLog("The adventure begins: " + scenario.scenario().title());
         return scenario;
@@ -124,6 +125,7 @@ public class GameFacade {
     public void load(String slot) {
         saves.load(slot, engine, memory);
         state.setTurnLimit(turnLimit);
+        state.setEasyWin(demoMode);
     }
 
     public List<String> listSaves() {
@@ -145,6 +147,21 @@ public class GameFacade {
     }
 
     public int getTurnLimit() { return turnLimit; }
+
+    private boolean demoMode;
+
+    /**
+     * Demo mode: the next adventure (or loaded game) lasts 5 turns and has one weak enemy,
+     * so every feature, including a victory, can be shown quickly.
+     */
+    public void setDemoMode(boolean on) {
+        demoMode = on;
+        turnLimit = on ? DEMO_TURNS : GameState.TURN_LIMIT;
+    }
+
+    public boolean isDemoMode() { return demoMode; }
+
+    public static final int DEMO_TURNS = 5;
 
     /** Hears about rate-limit waits (seconds left; 0 when the request goes again). */
     public void onRateLimitWait(LLMClient.WaitListener listener) { llm.setWaitListener(listener); }

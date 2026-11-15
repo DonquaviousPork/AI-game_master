@@ -119,6 +119,12 @@ public class CliSession {
             }
             case "saves" -> out.println(game.listSaves().isEmpty()
                     ? "No saved games." : "Saved games: " + String.join(", ", game.listSaves()));
+            case "demo" -> {
+                game.setDemoMode(!"off".equalsIgnoreCase(arg));
+                out.println(game.isDemoMode()
+                        ? "Demo mode on: the next adventure has " + game.getTurnLimit() + " turns and one weak enemy."
+                        : "Demo mode off: normal adventures of " + game.getTurnLimit() + " turns.");
+            }
             case "turns" -> {
                 requireArg(arg, "Usage: /turns <1-" + GameState.TURN_LIMIT + ">  (applies to the next adventure)");
                 game.setTurnLimit(Integer.parseInt(arg.trim()));
@@ -257,6 +263,7 @@ public class CliSession {
         out.println("  /status   show the scene, party and enemies");
         out.println("  /undo     undo the last damage or flee (dice are not re-rolled)");
         out.println("  /save <name>, /load <name>, /saves");
+        out.println("  /demo [off]  demo mode: 5 turns and one weak enemy, so a victory is quick to show");
         out.println("  /turns <n>  set the turn limit for the next adventure (a short one is handy for demos)");
         out.println("  /usage    model calls and tokens used so far");
         out.println("  /new      abandon this adventure and go back to setup");

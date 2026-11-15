@@ -94,8 +94,9 @@ because it contains your key. Saved games go to a `saves` folder next to where t
 - **View menu:** dark and light mode (Ctrl+D / Ctrl+L), remembered between runs.
 - **Settings menu:**
   - *Sound...* sets music volume, effects volume and mute (remembered).
-  - *Demo mode: 5-turn adventures* shortens the next adventure or loaded game
-    to 5 turns so every feature can be shown quickly. It still uses the real model.
+  - *Demo mode: 5 turns, one easy enemy* makes the next adventure last 5 turns with a
+    single weak enemy whose defeat is the objective, so a quick victory (or a defeat) can
+    be shown. It still uses the real model.
 - **Sound:** button clicks, menu music, and victory and defeat jingles. All sounds
   are generated in code; no audio files are needed. If the computer has no sound
   device the game simply stays silent.
@@ -116,7 +117,7 @@ Anything that is not a command is treated as what your party does.
 Commands: `/add <Fighter|Wizard|Rogue> <name>`, `/custom <class> <name>` (spend 20 stat
 points yourself), `/remove <name>`, `/party`, `/start [theme]`, `/status`, `/undo`,
 `/save <name>`, `/load <name>`, `/saves`, `/new` (abandon the adventure and go back to
-setup), `/turns <n>` (turn limit for the next adventure, 1-20, handy for demos),
+setup), `/demo [off]` (demo mode: 5 turns and one weak enemy), `/turns <n>` (turn limit for the next adventure, 1-20),
 `/usage` (model calls and tokens used), `/help`, `/quit`.
 
 ## Rate limits and costs

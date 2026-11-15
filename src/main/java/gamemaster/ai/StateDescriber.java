@@ -24,6 +24,10 @@ final class StateDescriber {
         if (state.getScenario() != null && !state.getScenario().objective().isBlank()) {
             sb.append("OBJECTIVE (fixed, the only goal; never add another): ")
                     .append(state.getScenario().objective()).append('\n');
+            if (state.isEasyWin()) {
+                sb.append("DEMO: the objective is achieved as soon as the enemy is defeated. When it falls, call "
+                        + "end_story with objective_achieved true.\n");
+            }
             int turn = state.getTurnsTaken();
             sb.append("Turn ").append(turn).append(" of ").append(state.getTurnLimit()).append(". ");
             if (turn >= state.getTurnLimit()) {

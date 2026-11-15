@@ -338,3 +338,7 @@ the git history; this file is the design-level record.
 - Sound (`audio/ToneSynth`, `audio/Sound`): every sound is generated in code (no audio files): a button click, looping menu music (setup and briefing screens), and victory and defeat jingles when the story ends. Playback runs on a background thread and does nothing if there is no sound device.
 - Settings menu: "Sound..." dialog (music volume, effects volume, mute; remembered between runs) and "Demo mode: 5-turn adventures".
 - Demo mode: `GameState` has an instance turn limit (default 20, `setTurnLimit`); `GameFacade.setTurnLimit` applies to the next adventure or loaded game; CLI `/turns <n>`. The briefing, turn counter, model prompt and forced ending all follow the chosen limit.
+
+## Commit 23 - Easy-win demo
+- Demo mode now also makes the next adventure easy to win: `ScenarioGenerator.generate(theme, easy)` keeps one enemy, caps its health at 5 and armor class at 8, and the engine sets the objective to "Defeat the <enemy>." The model is told (via `StateDescriber`) to end the story as a victory once the enemy falls; the 5-turn limit still ends it in defeat otherwise.
+- `GameFacade.setDemoMode`/`isDemoMode`; GUI Settings checkbox "Demo mode: 5 turns, one easy enemy"; CLI `/demo [off]`.

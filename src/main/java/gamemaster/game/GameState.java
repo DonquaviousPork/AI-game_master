@@ -30,6 +30,7 @@ public class GameState {
     /** An adventure lasts this many player turns; the engine ends it when they are used up. */
     public static final int TURN_LIMIT = 20;
     private int turnLimit = TURN_LIMIT;
+    private boolean easyWin;
 
     public GameState(Party party) {
         this.party = Objects.requireNonNull(party, "party");
@@ -61,6 +62,10 @@ public class GameState {
     public int getTurnsTaken() { return turnsTaken; }
     public int turnsLeft() { return Math.max(0, turnLimit - turnsTaken); }
     public int getTurnLimit() { return turnLimit; }
+
+    /** True in demo mode: defeating the single weak enemy achieves the objective. Not saved with the game. */
+    public boolean isEasyWin() { return easyWin; }
+    public void setEasyWin(boolean on) { this.easyWin = on; }
 
     /** Sets how many turns the adventure lasts (20 normally; a shorter limit is used for demos). */
     public void setTurnLimit(int turns) {

@@ -63,16 +63,15 @@ final class MainWindow extends JFrame {
         javax.swing.JMenuItem sound = new javax.swing.JMenuItem("Sound...");
         sound.addActionListener(e -> new SoundDialog(this).setVisible(true));
         settings.add(sound);
-        JCheckBoxMenuItem demo = new JCheckBoxMenuItem("Demo mode: 5-turn adventures",
-                game.getTurnLimit() < gamemaster.game.GameState.TURN_LIMIT);
-        demo.setToolTipText("Makes the next adventure (or loaded game) end after 5 turns, so every feature can be shown quickly");
-        demo.addActionListener(e -> game.setTurnLimit(demo.isSelected() ? DEMO_TURNS : gamemaster.game.GameState.TURN_LIMIT));
+        JCheckBoxMenuItem demo = new JCheckBoxMenuItem("Demo mode: 5 turns, one easy enemy",
+                game.isDemoMode());
+        demo.setToolTipText("Next adventure: 5 turns and one weak enemy, so a victory can be shown quickly");
+        demo.addActionListener(e -> game.setDemoMode(demo.isSelected()));
         settings.add(demo);
         bar.add(settings);
         return bar;
     }
 
-    private static final int DEMO_TURNS = 5;
     private static boolean clickSoundInstalled;
 
     /** Plays a click whenever any button in the window is pressed. */

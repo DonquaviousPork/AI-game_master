@@ -339,6 +339,16 @@ class AgentOrchestratorTest {
     }
 
     @Test
+    void demoModeTellsTheModelThatDefeatingTheEnemyWinsTheAdventure() {
+        GameEngine e = engineWithObjective();
+        e.getState().setEasyWin(true);
+        FakeLLM llm = new FakeLLM("ok");
+        new AgentOrchestrator(llm, e).takeTurn("go");
+        assertTrue(llm.calls.get(0).get(1).content().contains("DEMO: the objective is achieved"),
+                llm.calls.get(0).get(1).content());
+    }
+
+    @Test
     void theTurnLimitMustBeBetweenOneAndTheNormalLimit() {
         GameEngine e = engineWithObjective();
         assertThrows(IllegalArgumentException.class, () -> e.getState().setTurnLimit(0));

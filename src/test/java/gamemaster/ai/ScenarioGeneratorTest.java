@@ -178,4 +178,23 @@ class ScenarioGeneratorTest {
         assertThrows(IllegalArgumentException.class, () -> ScenarioGenerator.parse(
                 "{\"title\":\"T\",\"description\":\"D\",\"objective\":\"" + longGoal + "\",\"opening_event\":\"E\",\"monsters\":[]}"));
     }
+
+    @Test
+    void anEasyDemoScenarioHasOneWeakEnemyAndADefeatObjective() {
+        String two = "{\"title\":\"T\",\"description\":\"D\",\"objective\":\"Save the village.\",\"opening_event\":\"E\","
+                + "\"monsters\":[{\"name\":\"Ogre\",\"health\":30,\"armor_class\":16,\"weapon\":\"longsword\"},"
+                + "{\"name\":\"Imp\",\"health\":8,\"armor_class\":12,\"weapon\":\"dagger\"}]}";
+        GeneratedScenario s = new ScenarioGenerator(new FakeLLM(two)).generate(null, true);
+        assertEquals(1, s.monsters().size());
+        assertEquals("Ogre", s.monsters().get(0).getName());
+        assertEquals(ScenarioGenerator.EASY_MAX_HEALTH, s.monsters().get(0).getMaxHealth());
+        assertEquals(ScenarioGenerator.EASY_MAX_AC, s.monsters().get(0).getArmorClass());
+        assertEquals("Defeat the Ogre.", s.scenario().objective());
+    }
+
+    @Test
+    void aNormalScenarioIsLeftAlone() {
+        GeneratedScenario s = new ScenarioGenerator(new FakeLLM(VALID)).generate(null, false);
+        assertEquals(9, s.monsters().get(0).getMaxHealth());
+    }
 }

@@ -56,11 +56,26 @@ public class ScenarioGenerator {
 
     /** @param theme optional hint from the player, may be null or blank */
     public GeneratedScenario generate(String theme) {
+        return generate(theme, false);
+    }
+
+    /** Largest enemy allowed in an easy (demo) adventure: it falls in one or two hits. */
+    static final int EASY_MAX_HEALTH = 5, EASY_MAX_AC = 8;
+
+    /**
+     * @param theme optional hint from the player, may be null or blank
+     * @param easy  true for the demo: one weak enemy and the objective "Defeat the ..."
+     */
+    public GeneratedScenario generate(String theme, boolean easy) {
         List<ChatMessage> conversation = new ArrayList<>();
         conversation.add(ChatMessage.system(SYSTEM_PROMPT));
         conversation.add(ChatMessage.user(theme == null || theme.isBlank()
                 ? "Create a new adventure."
                 : "Create a new adventure with this theme: " + theme.trim()));
+        if (easy) {
+            conversation.add(ChatMessage.user("This is a quick demo: use exactly ONE enemy with very low health "
+                    + "and armor class, and make the objective simply to defeat that enemy."));
+        }
 
         String lastProblem = "";
         String lastReply = "";
@@ -68,7 +83,8 @@ public class ScenarioGenerator {
             String reply = llm.complete(conversation);
             lastReply = reply == null ? "" : reply;
             try {
-                return parse(reply);
+                GeneratedScenario parsed = parse(reply);
+                return easy ? makeEasy(parsed) : parsed;
             } catch (IllegalArgumentException e) {
                 lastProblem = e.getMessage();
                 conversation.add(ChatMessage.assistant(reply));
@@ -78,6 +94,22 @@ public class ScenarioGenerator {
         }
         throw new LLMException("The AI could not produce a valid scenario: " + lastProblem
                 + " (the last reply began: \"" + preview(lastReply) + "\")");
+    }
+
+    /**
+     * The engine, not the model, makes a demo adventure easy: one enemy, capped health and armor class,
+     * and the objective is to defeat it.
+     */
+    static GeneratedScenario makeEasy(GeneratedScenario s) {
+        if (s.monsters().isEmpty()) {
+            return s;
+        }
+        Monster first = s.monsters().get(0);
+        Monster weak = new Monster(first.getName(), Math.min(first.getMaxHealth(), EASY_MAX_HEALTH),
+                Math.min(first.getArmorClass(), EASY_MAX_AC), first.getWeapon());
+        Scenario scenario = new Scenario(s.scenario().title(), s.scenario().description(),
+                "Defeat the " + first.getName() + ".");
+        return new GeneratedScenario(scenario, s.openingEvent(), List.of(weak));
     }
 
     /** Package-visible so tests can check validation without a model. */
