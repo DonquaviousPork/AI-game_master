@@ -31,9 +31,38 @@ public record LLMConfig(String apiKey, String model, String baseUrl) {
         return value.trim();
     }
 
-    /** Reads .env in the working directory; real environment variables take priority. */
+    /**
+     * Reads .env from the working directory, or else from the folder the game was started from
+     * (next to the .jar), so a double-clicked game finds it. Real environment variables take priority.
+     */
     public static LLMConfig load() {
-        return load(Path.of(".env"), System.getenv());
+        Path env = Path.of(".env");
+        if (!Files.isRegularFile(env)) {
+            Path beside = besideProgram();
+            if (beside != null && Files.isRegularFile(beside)) {
+                env = beside;
+            }
+        }
+        return load(env, System.getenv());
+    }
+
+    private static Path besideProgram() {
+        try {
+            Path location = Path.of(LLMConfig.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            Path folder = Files.isDirectory(location) ? location : location.getParent();
+            // an installed app keeps its jar in an "app" folder with .env one level up
+            for (Path p = folder; p != null && p.getNameCount() > 0; p = p.getParent()) {
+                if (Files.isRegularFile(p.resolve(".env"))) {
+                    return p.resolve(".env");
+                }
+                if (p.equals(folder.getParent() == null ? folder : folder.getParent().getParent())) {
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            // fall through: no .env beside the program
+        }
+        return null;
     }
 
     public static LLMConfig load(Path envFile, Map<String, String> environment) {
