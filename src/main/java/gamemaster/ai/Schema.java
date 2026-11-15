@@ -20,6 +20,10 @@ final class Schema {
         return add(name, "integer", description, isRequired, null);
     }
 
+    Schema bool(String name, String description, boolean isRequired) {
+        return add(name, "boolean", description, isRequired, null);
+    }
+
     Schema choice(String name, String description, List<String> values, boolean isRequired) {
         return add(name, "string", description, isRequired, values);
     }

@@ -9,7 +9,8 @@ import java.util.List;
  * An immutable copy of what the window shows. It is built on the thread that changed the game
  * and then handed to the screen thread, so painting never reads a game that is mid-change.
  */
-record GameViewModel(String title, String phase, String scene, List<Card> heroes, List<Card> enemies, boolean over) {
+record GameViewModel(String title, String phase, String scene, List<Card> heroes, List<Card> enemies, boolean over,
+                     String objective, int turn, int turnLimit, String ending) {
 
     /** One hero or enemy as shown on a card. */
     record Card(String name, String detail, int health, int maxHealth, boolean alive, String look, String tooltip,
@@ -23,7 +24,14 @@ record GameViewModel(String title, String phase, String scene, List<Card> heroes
                 s.getScenario() == null ? "" : s.getScenario().title(),
                 s.getPhase().name(),
                 s.getCurrentEvent() == null ? "" : s.getCurrentEvent().description(),
-                heroes, enemies, over);
+                heroes, enemies, over,
+                s.getScenario() == null ? "" : s.getScenario().objective(),
+                s.getTurnsTaken(), GameState.TURN_LIMIT, endingText(s, over));
+    }
+
+    /** How the story ended, for the story pane; empty while it is still going. */
+    static String endingText(GameState s, boolean over) {
+        return over ? s.endingText() : "";
     }
 
     private static Card hero(Character c) {

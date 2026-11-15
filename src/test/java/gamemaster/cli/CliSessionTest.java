@@ -131,7 +131,7 @@ class CliSessionTest {
         FakeLLM llm = new FakeLLM(SCENARIO).thenTool("end_story", "{\"ending\":\"Peace returns.\"}")
                 .thenText("And so it ends.");
         String out = run(llm, "/add Fighter Brenna\n/start\nI finish it\nagain\n/quit");
-        assertTrue(out.contains("*** The story has ended. ***"), out);
+        assertTrue(out.contains("*** The story has ended."), out);
         assertTrue(out.contains("The story has ended. Use /load"), out);
     }
 

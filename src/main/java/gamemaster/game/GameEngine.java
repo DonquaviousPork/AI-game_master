@@ -69,7 +69,12 @@ public class GameEngine {
 
     /** Ends the story by choice (the AI or the player decides it is finished). */
     public void concludeStory() {
-        state.conclude();
+        concludeStory(false);
+    }
+
+    /** Ends the story and records whether the objective was achieved. */
+    public void concludeStory(boolean objectiveAchieved) {
+        state.conclude(objectiveAchieved);
         advancePhase();
     }
 

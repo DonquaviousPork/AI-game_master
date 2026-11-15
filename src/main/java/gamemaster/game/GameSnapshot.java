@@ -26,15 +26,29 @@ public record GameSnapshot(
         List<MonsterData> monsters,
         List<String> log,
         String memorySummary,
-        List<String> memoryRecent) {
+        List<String> memoryRecent,
+        String objective,
+        int turnsTaken,
+        boolean objectiveAchieved) {
 
+    /** Saves written before objectives and turn counting have no such fields; they load with these as defaults. */
     public static final int CURRENT_VERSION = 1;
+
+    public GameSnapshot(int version, String savedAt, String scenarioTitle, String scenarioDescription,
+                        String currentEvent, boolean concluded, List<CharacterData> party,
+                        List<MonsterData> monsters, List<String> log, String memorySummary,
+                        List<String> memoryRecent) {
+        this(version, savedAt, scenarioTitle, scenarioDescription, currentEvent, concluded, party, monsters,
+                log, memorySummary, memoryRecent, "", 0, false);
+    }
 
     public GameSnapshot {
         party = party == null ? List.of() : List.copyOf(party);
         monsters = monsters == null ? List.of() : List.copyOf(monsters);
         log = log == null ? List.of() : List.copyOf(log);
         memoryRecent = memoryRecent == null ? List.of() : List.copyOf(memoryRecent);
+        objective = objective == null ? "" : objective;
+        turnsTaken = Math.max(0, turnsTaken);
     }
 
     /** One hero, stored as values. */

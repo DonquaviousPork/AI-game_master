@@ -310,6 +310,17 @@ the git history; this file is the design-level record.
 - `GameViewModel.Card` gained `attacks` (the hero's attack names) so the menu is built from the immutable view model, not from the live game.
 - Tests: failed attempt changes nothing and rolls nothing, defeated enemy has no HP sentence, `BattlePlanTest` (instruction text, short form, menu built from a real game).
 
+## Commit 19: a fixed objective, a turn counter and a guaranteed ending
+- Problem seen in play: nothing defined a win, so the game master kept inventing new goals (the doorway, the supplies, the bridge) and the story could never be finished.
+- Each adventure now has one fixed objective. `ScenarioGenerator` asks the model for a single-sentence `objective` (rejected if over 240 characters; if the model leaves it out, a default objective is used so every adventure still has a goal). It is stored in `Scenario.objective`.
+- The engine counts player turns (`GameState.startTurn`, limit `GameState.TURN_LIMIT` = 20). The count is taken after the rollback snapshot, so a failed turn (for example HTTP 429) does not use one up.
+- Every turn the model is shown the objective and "Turn N of 20" (`StateDescriber`), is told never to add goals, gets a warning when 3 or fewer turns remain, and is told on the final turn to end the story. The `end_story` tool now takes `objective_achieved` (true/false) and `GameState` records it.
+- At the turn limit the engine ends the adventure itself (`AgentOrchestrator`), even if the model does not, with a "Time has run out" ending and no victory. Outcomes: VICTORY (objective achieved), DEFEAT (party defeated), or ended without the objective (`GameState.endingText`).
+- GUI: a briefing screen after the adventure is created shows the title, description, objective and the rules ("You have 20 turns..."); the play screen shows "TURN n / 20" with the objective beside it at the top; the story pane repeats the objective, and the ending text says victory or defeat. CLI: `/start` prints the objective, every status line shows the turn, `/status` shows the objective.
+- Saves keep the objective, turn count and outcome (three new snapshot fields). Older saves without them still load, with defaults.
+- Limitation to state honestly: whether the objective was achieved is the model's judgement (`objective_achieved`); the engine guarantees the ending but cannot verify the win.
+- Tests: turn counting, rollback does not consume a turn, prompt text near and at the limit, forced ending at the limit, victory and non-victory endings, objective parsing and default, snapshot round trip and an old save, and the view-model fields.
+
 ## Still to log (later commits)
 
 - Updated class diagram, plus sequence diagrams that changed.

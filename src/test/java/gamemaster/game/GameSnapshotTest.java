@@ -183,4 +183,33 @@ class GameSnapshotTest {
         p.replaceMembers(List.of(b));
         assertEquals(List.of(b), p.getCharacters());
     }
+
+    @Test
+    void theObjectiveTurnCountAndOutcomeSurviveASnapshot() {
+        GameEngine e = liveGame();
+        e.setScenario(new Scenario("T", "D", "Find the lost bell."));
+        e.getState().startTurn();
+        e.getState().startTurn();
+        e.concludeStory(true);
+        GameSnapshot snap = e.getState().createSnapshot("", List.of());
+        assertEquals("Find the lost bell.", snap.objective());
+        assertEquals(2, snap.turnsTaken());
+        assertTrue(snap.objectiveAchieved());
+
+        GameEngine other = blankGame();
+        other.load(snap);
+        assertEquals("Find the lost bell.", other.getState().getScenario().objective());
+        assertEquals(2, other.getState().getTurnsTaken());
+        assertTrue(other.getState().isObjectiveAchieved());
+    }
+
+    @Test
+    void anOldSaveWithoutObjectiveOrTurnsStillLoadsWithDefaults() {
+        String old = "{\"version\":1,\"savedAt\":\"x\",\"scenarioTitle\":\"T\",\"scenarioDescription\":\"D\","
+                + "\"concluded\":false,\"party\":[],\"monsters\":[],\"log\":[],\"memorySummary\":\"\",\"memoryRecent\":[]}";
+        GameSnapshot s = new com.google.gson.Gson().fromJson(old, GameSnapshot.class);
+        assertEquals("", s.objective());
+        assertEquals(0, s.turnsTaken());
+        assertFalse(s.objectiveAchieved());
+    }
 }

@@ -150,6 +150,9 @@ public class CliSession {
         out.println("*** " + s.scenario().title() + " ***");
         out.println(wrap(s.scenario().description()));
         out.println();
+        out.println("OBJECTIVE: " + s.scenario().objective());
+        out.println("You have " + GameState.TURN_LIMIT + " turns. Reach the objective before they run out to win.");
+        out.println();
         out.println(wrap(s.openingEvent().description()));
         for (Monster m : s.monsters()) {
             out.println("  Enemy: " + m);
@@ -165,14 +168,18 @@ public class CliSession {
         }
         out.println(statusLine());
         if (r.gameOver()) {
-            out.println("*** The story has ended. ***");
+            out.println("*** The story has ended. " + game.getState().endingText() + " ***");
         }
     }
 
     private void printStatus() {
         GameState s = game.getState();
         if (s.getScenario() != null) {
-            out.println("Adventure: " + s.getScenario().title() + "   Phase: " + s.getPhase().name());
+            out.println("Adventure: " + s.getScenario().title() + "   Phase: " + s.getPhase().name()
+                    + "   Turn " + Math.min(s.getTurnsTaken(), GameState.TURN_LIMIT) + "/" + GameState.TURN_LIMIT);
+            if (!s.getScenario().objective().isBlank()) {
+                out.println("Objective: " + s.getScenario().objective());
+            }
         }
         if (s.getCurrentEvent() != null) {
             out.println(wrap(s.getCurrentEvent().description()));
@@ -199,7 +206,8 @@ public class CliSession {
     }
 
     private String statusLine() {
-        StringBuilder sb = new StringBuilder("Party: ");
+        StringBuilder sb = new StringBuilder("[Turn " + Math.min(game.getState().getTurnsTaken(), GameState.TURN_LIMIT)
+                + "/" + GameState.TURN_LIMIT + "] Party: ");
         sb.append(String.join(" | ", game.getParty().stream()
                 .map(c -> c.getName() + " " + c.getHealth() + "/" + c.getMaxHealth()).toList()));
         var monsters = game.getState().getMonsters().stream().filter(Monster::isAlive).toList();

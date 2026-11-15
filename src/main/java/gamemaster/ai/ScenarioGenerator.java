@@ -24,6 +24,8 @@ import java.util.Objects;
 public class ScenarioGenerator {
 
     static final int MAX_ATTEMPTS = 2;
+    /** Used only when the model leaves the objective out, so every adventure still has a goal. */
+    static final String DEFAULT_OBJECTIVE = "Resolve the situation you find yourselves in before time runs out.";
     static final int MAX_MONSTERS = 3;
     static final int MIN_HEALTH = JsonFields.MIN_HEALTH, MAX_HEALTH = JsonFields.MAX_HEALTH;
     static final int MIN_AC = JsonFields.MIN_AC, MAX_AC = JsonFields.MAX_AC;
@@ -31,11 +33,14 @@ public class ScenarioGenerator {
     private static final String SYSTEM_PROMPT = """
             You write opening scenarios for a small fantasy text role-playing game.
             Reply with ONLY one JSON object and no other text, in exactly this shape:
-            {"title": "...", "description": "...", "opening_event": "...",
+            {"title": "...", "description": "...", "objective": "...", "opening_event": "...",
              "monsters": [{"name": "...", "health": 8, "armor_class": 12, "weapon": "dagger"}]}
             Rules:
             - title: a short name for the adventure.
             - description: two or three sentences setting the scene for a party of heroes.
+            - objective: ONE concrete goal the heroes can achieve in about 15 short turns, written as one
+              sentence the player can read (for example: Rescue the missing children and drive the goblins out
+              of the tree house). It must be a single goal, not a list, and must not need more than a few scenes.
             - opening_event: one or two sentences describing what happens first.
             - monsters: 0 to 3 enemies the party meets at once. health must be %d to %d,
               armor_class must be %d to %d, weapon must be one of: longsword, quarterstaff, dagger.
@@ -78,7 +83,15 @@ public class ScenarioGenerator {
     /** Package-visible so tests can check validation without a model. */
     static GeneratedScenario parse(String reply) {
         JsonObject root = extractObject(reply);
-        Scenario scenario = new Scenario(text(root, "title"), text(root, "description"));
+        String objective = root.has("objective") && !root.get("objective").isJsonNull()
+                ? root.get("objective").getAsString().trim() : "";
+        if (objective.length() > 240) {
+            throw new IllegalArgumentException("\"objective\" must be one short sentence (under 240 characters).");
+        }
+        if (objective.isEmpty()) {
+            objective = DEFAULT_OBJECTIVE;
+        }
+        Scenario scenario = new Scenario(text(root, "title"), text(root, "description"), objective);
         StoryEvent event = new StoryEvent(text(root, "opening_event"));
 
         JsonElement monstersElement = root.get("monsters");

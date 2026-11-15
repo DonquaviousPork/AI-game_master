@@ -157,4 +157,25 @@ class ScenarioGeneratorTest {
         new ScenarioGenerator(llm).generate(null);
         assertTrue(llm.calls.get(0).get(0).content().contains("single quotes"));
     }
+
+    @Test
+    void theObjectiveIsReadFromTheReply() {
+        GeneratedScenario g = ScenarioGenerator.parse("""
+                {"title":"T","description":"D","objective":"Rescue the miller's daughter.","opening_event":"E","monsters":[]}""");
+        assertEquals("Rescue the miller's daughter.", g.scenario().objective());
+    }
+
+    @Test
+    void aMissingObjectiveGetsTheDefaultSoEveryAdventureHasAGoal() {
+        GeneratedScenario g = ScenarioGenerator.parse("""
+                {"title":"T","description":"D","opening_event":"E","monsters":[]}""");
+        assertEquals(ScenarioGenerator.DEFAULT_OBJECTIVE, g.scenario().objective());
+    }
+
+    @Test
+    void anObjectiveThatIsFarTooLongIsRejected() {
+        String longGoal = "x".repeat(300);
+        assertThrows(IllegalArgumentException.class, () -> ScenarioGenerator.parse(
+                "{\"title\":\"T\",\"description\":\"D\",\"objective\":\"" + longGoal + "\",\"opening_event\":\"E\",\"monsters\":[]}"));
+    }
 }

@@ -18,9 +18,12 @@ public class EndStoryTool implements Tool {
     @Override
     public ToolSpec spec() {
         return new ToolSpec("end_story",
-                "End the adventure when the story has reached a natural conclusion. Do not use this "
-                        + "while enemies remain unless the story truly ends.",
-                Schema.object().string("ending", "One or two sentences describing how the story ends", true).build());
+                "End the adventure. Call it as soon as the heroes achieve the objective shown in the game state, "
+                        + "or on the final turn. Do not use it while enemies remain unless the story truly ends.",
+                Schema.object()
+                        .string("ending", "One or two sentences describing how the story ends", true)
+                        .bool("objective_achieved", "true only if the heroes actually achieved the objective", true)
+                        .build());
     }
 
     @Override
@@ -30,8 +33,10 @@ public class EndStoryTool implements Tool {
             throw new IllegalStateException("The story cannot end during the "
                     + engine.getState().getPhase().name() + " phase.");
         }
+        boolean achieved = args.has("objective_achieved") && !args.get("objective_achieved").isJsonNull()
+                && args.get("objective_achieved").getAsBoolean();
         engine.getState().addLog("The story ends: " + ending);
-        engine.concludeStory();
-        return "The story has concluded. Phase: " + engine.getState().getPhase().name() + ".";
+        engine.concludeStory(achieved);
+        return (achieved ? "Objective achieved. " : "Objective not achieved. ") + "The story has concluded. Phase: " + engine.getState().getPhase().name() + ".";
     }
 }

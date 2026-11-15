@@ -21,6 +21,21 @@ final class StateDescriber {
             sb.append("Adventure: ").append(state.getScenario().title()).append(" - ")
                     .append(state.getScenario().description()).append('\n');
         }
+        if (state.getScenario() != null && !state.getScenario().objective().isBlank()) {
+            sb.append("OBJECTIVE (fixed, the only goal; never add another): ")
+                    .append(state.getScenario().objective()).append('\n');
+            int turn = state.getTurnsTaken();
+            sb.append("Turn ").append(turn).append(" of ").append(GameState.TURN_LIMIT).append(". ");
+            if (turn >= GameState.TURN_LIMIT) {
+                sb.append("THIS IS THE FINAL TURN: bring the story to its end now by calling end_story "
+                        + "(objective_achieved true only if the heroes achieved the objective).\n");
+            } else if (state.turnsLeft() <= 3) {
+                sb.append("Only ").append(state.turnsLeft()).append(" turns remain after this one: steer the scene "
+                        + "toward the objective and its conclusion. Do not open new plot threads.\n");
+            } else {
+                sb.append("Keep every scene moving toward the objective.\n");
+            }
+        }
         sb.append("Phase: ").append(state.getPhase().name()).append('\n');
         sb.append("Party:\n");
         for (Character c : state.getParty().getCharacters()) {

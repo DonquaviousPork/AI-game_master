@@ -24,6 +24,11 @@ public class GameState {
     private StoryEvent currentEvent;
     private GamePhase phase = new SetupPhase();
     private boolean concluded;
+    private int turnsTaken;
+    private boolean objectiveAchieved;
+
+    /** An adventure lasts this many player turns; the engine ends it when they are used up. */
+    public static final int TURN_LIMIT = 20;
 
     public GameState(Party party) {
         this.party = Objects.requireNonNull(party, "party");
@@ -52,6 +57,9 @@ public class GameState {
     public StoryEvent getCurrentEvent() { return currentEvent; }
     public GamePhase getPhase() { return phase; }
     public boolean isConcluded() { return concluded; }
+    public int getTurnsTaken() { return turnsTaken; }
+    public int turnsLeft() { return Math.max(0, TURN_LIMIT - turnsTaken); }
+    public boolean isObjectiveAchieved() { return objectiveAchieved; }
     public List<Monster> getMonsters() { return Collections.unmodifiableList(monsters); }
     public List<String> getLog() { return Collections.unmodifiableList(log); }
 
@@ -63,6 +71,8 @@ public class GameState {
 
     public void setScenario(Scenario scenario) {
         this.scenario = Objects.requireNonNull(scenario, "scenario");
+        this.turnsTaken = 0;
+        this.objectiveAchieved = false;
         changed();
     }
 
@@ -88,8 +98,32 @@ public class GameState {
         changed();
     }
 
+    /** How the story ended (victory, defeat or time ran out); empty while it is still going. */
+    public String endingText() {
+        if (!concluded && !party.isDefeated()) {
+            return "";
+        }
+        if (party.isDefeated()) {
+            return "DEFEAT: the party has fallen.";
+        }
+        return objectiveAchieved ? "VICTORY: the objective was achieved."
+                : "The adventure ended without the objective being achieved.";
+    }
+
+    /** Counts one player turn. Called by the AI layer at the start of each turn. */
+    public void startTurn() {
+        turnsTaken++;
+        changed();
+    }
+
     public void conclude() {
+        conclude(false);
+    }
+
+    /** Ends the story; {@code achieved} records whether the objective was met (a win) or not. */
+    public void conclude(boolean achieved) {
         concluded = true;
+        objectiveAchieved = achieved;
         changed();
     }
 
@@ -105,6 +139,8 @@ public class GameState {
         scenario = null;
         currentEvent = null;
         concluded = false;
+        turnsTaken = 0;
+        objectiveAchieved = false;
         log.clear();
         phase = new SetupPhase();
         changed();
@@ -125,7 +161,10 @@ public class GameState {
                 monsters.stream().map(GameSnapshot.MonsterData::of).toList(),
                 List.copyOf(log),
                 memorySummary == null ? "" : memorySummary,
-                memoryRecent == null ? List.of() : memoryRecent);
+                memoryRecent == null ? List.of() : memoryRecent,
+                scenario == null ? "" : scenario.objective(),
+                turnsTaken,
+                objectiveAchieved);
     }
 
     /**
@@ -138,7 +177,7 @@ public class GameState {
         List<Character> heroes = snapshot.party().stream().map(GameSnapshot.CharacterData::toCharacter).toList();
         List<Monster> enemies = snapshot.monsters().stream().map(GameSnapshot.MonsterData::toMonster).toList();
         Scenario newScenario = snapshot.scenarioTitle() == null ? null
-                : new Scenario(snapshot.scenarioTitle(), snapshot.scenarioDescription());
+                : new Scenario(snapshot.scenarioTitle(), snapshot.scenarioDescription(), snapshot.objective());
         StoryEvent newEvent = snapshot.currentEvent() == null || snapshot.currentEvent().isBlank() ? null
                 : new StoryEvent(snapshot.currentEvent());
 
@@ -148,6 +187,8 @@ public class GameState {
         scenario = newScenario;
         currentEvent = newEvent;
         concluded = snapshot.concluded();
+        turnsTaken = snapshot.turnsTaken();
+        objectiveAchieved = snapshot.objectiveAchieved();
         log.clear();
         log.addAll(snapshot.log());
         phase = new SetupPhase();

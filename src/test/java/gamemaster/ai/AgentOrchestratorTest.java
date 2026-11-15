@@ -262,4 +262,99 @@ class AgentOrchestratorTest {
         AgentOrchestrator again = new AgentOrchestrator(new FakeLLM("The door gives way."), e);
         assertEquals("The door gives way.", again.takeTurn("I push the door").narration());
     }
+
+    // ---- objective and turn limit ----
+
+    private GameEngine engineWithObjective() {
+        GameEngine e = engine();
+        e.setScenario(new Scenario("Grove", "A withering grove.", "Cleanse the spring at the heart of the grove."));
+        return e;
+    }
+
+    @Test
+    void everyTurnIsCountedAndShownToTheModelWithTheObjective() {
+        GameEngine e = engineWithObjective();
+        FakeLLM llm = new FakeLLM("The wind rustles.", "A bird sings.");
+        AgentOrchestrator agent = new AgentOrchestrator(llm, e);
+        agent.takeTurn("I look around");
+        assertEquals(1, e.getState().getTurnsTaken());
+        String prompt = llm.calls.get(0).get(1).content();
+        assertTrue(prompt.contains("Cleanse the spring at the heart of the grove."), prompt);
+        assertTrue(prompt.contains("Turn 1 of 20"), prompt);
+        agent.takeTurn("I walk on");
+        assertEquals(2, e.getState().getTurnsTaken());
+    }
+
+    @Test
+    void aFailedTurnDoesNotUseUpAPlayerTurn() {
+        GameEngine e = engineWithObjective();
+        AgentOrchestrator agent = new AgentOrchestrator(new FakeLLM().thenTool("roll_check", CHECK), e);
+        assertThrows(IllegalStateException.class, () -> agent.takeTurn("I push the door"));
+        assertEquals(0, e.getState().getTurnsTaken());
+    }
+
+    @Test
+    void theModelIsToldWhenTurnsAreRunningOutAndOnTheFinalTurn() {
+        GameEngine e = engineWithObjective();
+        for (int i = 0; i < 16; i++) {
+            e.getState().startTurn();            // 16 turns used; the next is turn 17, so 3 remain after it
+        }
+        FakeLLM llm = new FakeLLM("a", "b", "c", "d");
+        AgentOrchestrator agent = new AgentOrchestrator(llm, e);
+        agent.takeTurn("go");
+        assertTrue(llm.calls.get(0).get(1).content().contains("turns remain after this one"));
+        agent.takeTurn("go");
+        agent.takeTurn("go");
+        agent.takeTurn("go");
+        assertTrue(llm.calls.get(3).get(1).content().contains("THIS IS THE FINAL TURN"));
+    }
+
+    @Test
+    void theEngineEndsTheAdventureAtTheTurnLimitEvenIfTheModelDoesNot() {
+        GameEngine e = engineWithObjective();
+        for (int i = 0; i < GameState.TURN_LIMIT - 1; i++) {
+            e.getState().startTurn();
+        }
+        TurnResult r = new AgentOrchestrator(new FakeLLM("The grove stays quiet."), e).takeTurn("I wait");
+        assertTrue(r.gameOver());
+        assertEquals("Ended", e.getState().getPhase().name());
+        assertFalse(e.getState().isObjectiveAchieved());
+        assertTrue(r.narration().contains("Time has run out"), r.narration());
+        assertTrue(r.toolActivity().get(r.toolActivity().size() - 1).startsWith("turn limit:"));
+        assertTrue(e.getState().endingText().contains("without the objective"));
+    }
+
+    @Test
+    void endingTheStoryWithTheObjectiveAchievedIsAVictory() {
+        GameEngine e = engineWithObjective();
+        FakeLLM llm = new FakeLLM().thenTool("end_story", "{\"ending\":\"The spring runs clear.\",\"objective_achieved\":true}")
+                .thenText("The grove blooms.");
+        TurnResult r = new AgentOrchestrator(llm, e).takeTurn("I cleanse the spring");
+        assertTrue(r.gameOver());
+        assertTrue(e.getState().isObjectiveAchieved());
+        assertTrue(e.getState().endingText().startsWith("VICTORY"));
+        assertTrue(r.toolActivity().get(0).contains("Objective achieved."), r.toolActivity().get(0));
+    }
+
+    @Test
+    void endingWithoutAchievingTheObjectiveIsNotAVictory() {
+        GameEngine e = engineWithObjective();
+        FakeLLM llm = new FakeLLM().thenTool("end_story", "{\"ending\":\"They give up.\",\"objective_achieved\":false}")
+                .thenText("The party leaves.");
+        new AgentOrchestrator(llm, e).takeTurn("We leave");
+        assertFalse(e.getState().isObjectiveAchieved());
+    }
+
+    @Test
+    void aTurnRolledBackAfterTheLimitIsReachedStillEndsOnTheNextSuccess() {
+        GameEngine e = engineWithObjective();
+        for (int i = 0; i < GameState.TURN_LIMIT - 1; i++) {
+            e.getState().startTurn();
+        }
+        AgentOrchestrator bad = new AgentOrchestrator(new FakeLLM().thenTool("roll_check", CHECK), e);
+        assertThrows(IllegalStateException.class, () -> bad.takeTurn("x"));
+        assertEquals(GameState.TURN_LIMIT - 1, e.getState().getTurnsTaken());
+        assertFalse(e.checkEndCondition());
+        assertTrue(new AgentOrchestrator(new FakeLLM("ok"), e).takeTurn("y").gameOver());
+    }
 }

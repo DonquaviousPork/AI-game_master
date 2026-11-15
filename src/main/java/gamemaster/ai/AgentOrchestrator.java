@@ -2,6 +2,7 @@ package gamemaster.ai;
 
 import gamemaster.game.GameEngine;
 import gamemaster.game.GameSnapshot;
+import gamemaster.game.GameState;
 import gamemaster.game.StoryEvent;
 import gamemaster.llm.ChatMessage;
 import gamemaster.llm.LLMClient;
@@ -42,6 +43,11 @@ public class AgentOrchestrator {
               attack, or "kill everyone"), do not substitute a different attack: call attack with the
               move named exactly as the player asked. The game reports that the hero tried and failed,
               and you then narrate the failed attempt.
+            - The game state shows one fixed OBJECTIVE and the turn number. That objective is the only
+              goal of the adventure: never add new goals, quests or mysteries, and do not stretch the
+              story. When the heroes achieve it, call end_story with objective_achieved true and narrate
+              the ending. On the final turn, call end_story (objective_achieved false if they did not
+              achieve it). Keep each scene short and directed at the objective.
             - Critical hits and fumbles are decided by the dice; report them as the tool states them.
             - When you have what you need, reply with two to four sentences of narration for the player
               and, if the story is still going, end with what the heroes can do next. Do not use tools
@@ -79,6 +85,7 @@ public class AgentOrchestrator {
         // objects, so the undo history (which points at the old ones) is cleared, as it is on Load.
         GameSnapshot before = engine.getState().createSnapshot("", List.of());
         try {
+            engine.getState().startTurn();      // after the rollback point, so a failed turn does not use one up
             return runTurn(playerInput);
         } catch (RuntimeException e) {
             engine.getState().restore(before);
@@ -127,6 +134,14 @@ public class AgentOrchestrator {
         }
 
         narration = TextCleaner.clean(narration);
+        var state = engine.getState();
+        if (!engine.checkEndCondition() && state.getTurnsTaken() >= GameState.TURN_LIMIT) {
+            // The engine, not the model, guarantees the adventure ends.
+            state.addLog("The turn limit was reached.");
+            engine.concludeStory(false);
+            activity.add("turn limit: The " + GameState.TURN_LIMIT + "-turn limit was reached and the adventure ended.");
+            narration = narration + "\n\nTime has run out. The adventure ends here without the objective being achieved.";
+        }
         if (!narration.isBlank()) {
             engine.setCurrentEvent(new StoryEvent(narration));
         }

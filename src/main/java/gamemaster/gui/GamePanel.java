@@ -41,6 +41,8 @@ final class GamePanel extends BackdropPanel implements GameView {
 
     private final JLabel title = new JLabel(" ");
     private final PhasePill phase = new PhasePill();
+    private final JLabel turnLabel = new JLabel(" ");
+    private final JLabel objective = new JLabel(" ");
     private final JTextPane story = new JTextPane();
     private final JPanel sidebar = new JPanel();
     private final JLabel status = new JLabel(" ");
@@ -94,6 +96,8 @@ final class GamePanel extends BackdropPanel implements GameView {
     private void render(GameViewModel m) {
         title.setText(m.title().isEmpty() ? " " : m.title());
         phase.setPhase(m.phase());
+        turnLabel.setText(m.objective().isEmpty() ? " " : "TURN " + Math.min(m.turn(), m.turnLimit()) + " / " + m.turnLimit());
+        objective.setText(m.objective().isEmpty() ? " " : WrappedText.html("Objective: " + m.objective(), 780));
         over = m.over();
         sidebar.removeAll();
         sidebar.add(sidebarTitle("PARTY"));
@@ -122,7 +126,7 @@ final class GamePanel extends BackdropPanel implements GameView {
         sidebar.repaint();
         if (over && !endingShown) {
             endingShown = true;
-            paragraph("The story has ended.", Style.ENDING);
+            paragraph(m.ending().isEmpty() ? "The story has ended." : "The story has ended. " + m.ending(), Style.ENDING);
             setStatus("The story has ended. You can load a saved game.", GuiTheme.PURPLE_SOFT);
         }
         inCombat = "Combat".equals(m.phase()) && !m.over();
@@ -157,6 +161,7 @@ final class GamePanel extends BackdropPanel implements GameView {
         endingShown = false;
         paragraph(s.scenario().description(), Style.NARRATION);
         paragraph(s.openingEvent().description(), Style.SCENE);
+        paragraph("OBJECTIVE: " + s.scenario().objective() + "  (" + GameState.TURN_LIMIT + " turns)", Style.SCENE);
         for (var hero : game.getParty()) {
             paragraph(GameViewModel.attacksLine(hero), Style.RULES);
         }
@@ -314,6 +319,18 @@ final class GamePanel extends BackdropPanel implements GameView {
         title.setForeground(GuiTheme.PURPLE_SOFT);
         p.add(title, BorderLayout.WEST);
         p.add(phase, BorderLayout.EAST);
+
+        turnLabel.setFont(GuiTheme.sans(java.awt.Font.BOLD, 13f));
+        turnLabel.setForeground(GuiTheme.PURPLE_SOFT);
+        objective.setFont(GuiTheme.sans(java.awt.Font.PLAIN, 13f));
+        objective.setForeground(GuiTheme.TEXT);
+        JPanel bar = new JPanel(new BorderLayout(12, 0));
+        bar.setOpaque(false);
+        bar.setBorder(GuiTheme.padding(6, 0, 0, 0));
+        bar.add(turnLabel, BorderLayout.WEST);
+        bar.add(objective, BorderLayout.CENTER);
+        bar.setAlignmentY(0f);
+        p.add(bar, BorderLayout.SOUTH);
         return p;
     }
 

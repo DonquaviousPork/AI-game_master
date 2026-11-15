@@ -111,4 +111,18 @@ class GameViewModelTest {
         assertTrue(tip.contains("Power Strike - d12, -3 to hit"), tip);
         assertTrue(GameViewModel.attacksLine(e.getState().getParty().getCharacters().get(0)).contains("Shield Bash d4 +2"));
     }
+
+    @Test
+    void theViewModelCarriesTheObjectiveTurnCounterAndEnding() {
+        GameEngine e = engine();
+        e.setScenario(new gamemaster.game.Scenario("T", "D", "Light the beacon."));
+        e.getState().startTurn();
+        GameViewModel m = GameViewModel.from(e.getState());
+        assertEquals("Light the beacon.", m.objective());
+        assertEquals(1, m.turn());
+        assertEquals(20, m.turnLimit());
+        assertEquals("", m.ending());
+        e.concludeStory(true);
+        assertTrue(GameViewModel.from(e.getState()).ending().startsWith("VICTORY"));
+    }
 }
