@@ -145,4 +145,18 @@ class GameFacadeTest {
         assertFalse(g.isStarted());
         g.addCharacter("Mira", "Wizard"); // still in setup
     }
+
+    @Test
+    void returnToMenuGivesAnEmptySetupWhereANewAdventureCanBeBuilt() throws Exception {
+        GameFacade g = facade(new FakeLLM(SCENARIO, CALM));
+        g.addCharacter("Brenna", "Fighter");
+        g.startAdventure("crypt");
+        assertTrue(g.isStarted());
+        g.returnToMenu();
+        assertFalse(g.isStarted());
+        assertEquals(0, g.getParty().size());
+        g.addCharacter("Mira", "Wizard");
+        g.startAdventure("road");
+        assertEquals("Quiet Road", g.getState().getScenario().title());
+    }
 }

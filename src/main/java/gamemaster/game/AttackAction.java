@@ -27,14 +27,16 @@ public class AttackAction implements Action {
         AttackResult hit = rules.rollAttack(attacker, weapon, target);
         if (!hit.hit()) {
             damageDealt = 0;
-            return new ActionResult(attacker.getName() + " attacks " + target.getName()
-                    + " (rolled " + hit.total() + " vs AC " + hit.targetArmorClass() + ") and misses.");
+            String what = hit.fumble() ? " FUMBLE! (natural 1)" : "";
+            return new ActionResult(attacker.getName() + " attacks " + target.getName() + " with " + weapon.name()
+                    + " (rolled " + hit.total() + " vs AC " + hit.targetArmorClass() + ") and misses." + what);
         }
         int before = target.getHealth();
-        target.applyDamage(rules.rollDamage(attacker, weapon));
+        target.applyDamage(rules.rollDamage(attacker, weapon, hit.critical()));
         damageDealt = before - target.getHealth();
-        String text = attacker.getName() + " hits " + target.getName() + " (rolled " + hit.total()
-                + " vs AC " + hit.targetArmorClass() + ") for " + damageDealt + " damage.";
+        String text = attacker.getName() + " hits " + target.getName() + " with " + weapon.name() + " (rolled "
+                + hit.total() + " vs AC " + hit.targetArmorClass() + ") for " + damageDealt + " damage."
+                + (hit.critical() ? " CRITICAL HIT! (natural 20, double damage dice)" : "");
         if (!target.isAlive()) {
             text += " " + target.getName() + " is defeated.";
         }

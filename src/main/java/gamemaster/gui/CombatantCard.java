@@ -21,6 +21,9 @@ final class CombatantCard extends JPanel {
         this.accent = accent;
         this.alive = card.alive();
         setOpaque(false);
+        if (!card.tooltip().isEmpty()) {
+            setToolTipText(card.tooltip());
+        }
         setAlignmentX(LEFT_ALIGNMENT);
         setBorder(GuiTheme.padding(10, 14, 12, 14));
 

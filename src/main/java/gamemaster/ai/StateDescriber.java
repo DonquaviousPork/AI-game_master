@@ -24,7 +24,12 @@ final class StateDescriber {
         sb.append("Phase: ").append(state.getPhase().name()).append('\n');
         sb.append("Party:\n");
         for (Character c : state.getParty().getCharacters()) {
-            sb.append("  - ").append(c).append(c.isAlive() ? "" : " [DEFEATED]").append('\n');
+            sb.append("  - name \"").append(c.getName()).append("\" (").append(c.getCharacterClass().name())
+                    .append("), HP ").append(c.getHealth()).append('/').append(c.getMaxHealth())
+                    .append(", AC ").append(c.getArmorClass()).append(c.isAlive() ? "" : " [DEFEATED]").append('\n');
+            if (c.isAlive()) {
+                sb.append("      attacks: ").append(Lookup.attackList(c.getCharacterClass().attacks())).append('\n');
+            }
         }
         List<Monster> monsters = state.getMonsters();
         if (monsters.isEmpty()) {
@@ -32,7 +37,9 @@ final class StateDescriber {
         } else {
             sb.append("Enemies:\n");
             for (Monster m : monsters) {
-                sb.append("  - ").append(m).append(m.isAlive() ? "" : " [DEFEATED]").append('\n');
+                sb.append("  - name \"").append(m.getName()).append("\", HP ").append(m.getHealth()).append('/')
+                        .append(m.getMaxHealth()).append(", AC ").append(m.getArmorClass())
+                        .append(m.isAlive() ? "" : " [DEFEATED]").append('\n');
             }
         }
         if (state.getCurrentEvent() != null) {

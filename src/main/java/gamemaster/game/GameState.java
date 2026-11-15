@@ -98,6 +98,18 @@ public class GameState {
         changed();
     }
 
+    /** Back to an empty Setup state: no heroes, enemies, scenario or log. Used by "return to the main menu". */
+    public void reset() {
+        party.clear();
+        monsters.clear();
+        scenario = null;
+        currentEvent = null;
+        concluded = false;
+        log.clear();
+        phase = new SetupPhase();
+        changed();
+    }
+
     // ---- Memento ----
 
     /** Freezes the game into plain values. The memory text belongs to the AI layer, so the caller passes it in. */

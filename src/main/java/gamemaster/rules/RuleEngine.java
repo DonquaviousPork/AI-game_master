@@ -41,7 +41,10 @@ public class RuleEngine {
         return rollAbilityCheck(character, stat, DEFAULT_DIFFICULTY);
     }
 
-    /** F08: d20 + the weapon stat's modifier against the target's armor class. */
+    /**
+     * F08: d20 + the weapon stat's modifier + the attack's own bonus against the target's armor class.
+     * A natural 20 always hits and is critical; a natural 1 always misses and is a fumble.
+     */
     public AttackResult rollAttack(Combatant attacker, Weapon weapon, Combatant target) {
         requireAlive(attacker, "attack");
         Objects.requireNonNull(weapon, "weapon");
@@ -50,10 +53,13 @@ public class RuleEngine {
             throw new IllegalStateException(target.getName() + " is already defeated.");
         }
         int roll = dice.roll(D20);
-        int modifier = attacker.getModifier(weapon.stat());
+        int modifier = attacker.getModifier(weapon.stat()) + weapon.attackBonus();
         int total = roll + modifier;
         int armorClass = target.getArmorClass();
-        return new AttackResult(roll, modifier, total, armorClass, total >= armorClass);
+        boolean critical = roll == D20;
+        boolean fumble = roll == 1;
+        boolean hit = critical || (!fumble && total >= armorClass);
+        return new AttackResult(roll, modifier, total, armorClass, hit, critical, fumble);
     }
 
     /**
@@ -61,9 +67,17 @@ public class RuleEngine {
      * Returns the amount only; the caller passes it to Combatant.applyDamage().
      */
     public int rollDamage(Combatant attacker, Weapon weapon) {
+        return rollDamage(attacker, weapon, false);
+    }
+
+    /** As above, but a critical hit rolls the weapon's die twice (the modifier is added once). */
+    public int rollDamage(Combatant attacker, Weapon weapon, boolean critical) {
         requireAlive(attacker, "deal damage");
         Objects.requireNonNull(weapon, "weapon");
         int roll = dice.roll(weapon.damageSides());
+        if (critical) {
+            roll += dice.roll(weapon.damageSides());
+        }
         return Math.max(1, roll + attacker.getModifier(weapon.stat()));
     }
 

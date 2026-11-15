@@ -105,6 +105,10 @@ public class CliSession {
             }
             case "saves" -> out.println(game.listSaves().isEmpty()
                     ? "No saved games." : "Saved games: " + String.join(", ", game.listSaves()));
+            case "new" -> {
+                game.returnToMenu();
+                out.println("Adventure abandoned (use /save first to keep one). Add characters with /add, then /start.");
+            }
             case "quit", "exit" -> {
                 return false;
             }
@@ -186,6 +190,11 @@ public class CliSession {
         }
         for (Character c : game.getParty()) {
             out.println("  " + c + (c.isAlive() ? "" : " [defeated]"));
+            if (c.isAlive()) {
+                out.println("      attacks: " + c.getCharacterClass().attacks().stream()
+                        .map(w -> w.name() + " d" + w.damageSides() + " " + (w.attackBonus() >= 0 ? "+" : "") + w.attackBonus())
+                        .collect(java.util.stream.Collectors.joining("; ")));
+            }
         }
     }
 
@@ -220,6 +229,7 @@ public class CliSession {
         out.println("  /status   show the scene, party and enemies");
         out.println("  /undo     undo the last damage or flee (dice are not re-rolled)");
         out.println("  /save <name>, /load <name>, /saves");
+        out.println("  /new      abandon this adventure and go back to setup");
         out.println("  /help, /quit");
         out.println("While playing, type what your party does, for example: I attack the wolf.");
     }

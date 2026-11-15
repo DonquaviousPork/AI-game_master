@@ -45,6 +45,11 @@ public class Party {
         characters.addAll(members);
     }
 
+    /** Removes every member (used when the player returns to the main menu to start over). */
+    public void clear() {
+        characters.clear();
+    }
+
     /** True when the party size is within the allowed range. */
     public boolean isValidSize() {
         return characters.size() >= MIN_SIZE && characters.size() <= MAX_SIZE;

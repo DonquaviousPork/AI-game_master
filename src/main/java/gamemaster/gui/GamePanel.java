@@ -49,6 +49,8 @@ final class GamePanel extends BackdropPanel implements GameView {
     private final StyledButton undo = new StyledButton("Undo", false);
     private final StyledButton save = new StyledButton("Save", false);
     private final StyledButton load = new StyledButton("Load", false);
+    private final StyledButton menu = new StyledButton("Main menu", false);
+    private Runnable onMenu = () -> {};
 
     private boolean busy;
     private boolean over;
@@ -128,6 +130,9 @@ final class GamePanel extends BackdropPanel implements GameView {
         endingShown = false;
         paragraph(s.scenario().description(), Style.NARRATION);
         paragraph(s.openingEvent().description(), Style.SCENE);
+        for (var hero : game.getParty()) {
+            paragraph(GameViewModel.attacksLine(hero), Style.RULES);
+        }
         for (Monster m : s.monsters()) {
             paragraph("Enemy: " + m.getName() + "  (HP " + m.getMaxHealth() + ", AC " + m.getArmorClass() + ")", Style.RULES);
         }
@@ -220,6 +225,35 @@ final class GamePanel extends BackdropPanel implements GameView {
 
     void markUnsaved() { unsaved = true; }
 
+    /** Set by the app: called after the player chose to leave this game and the game was reset. */
+    void setOnMenu(Runnable onMenu) { this.onMenu = onMenu; }
+
+    /** Returns to the setup screen, first warning when the game has progress that was never saved. */
+    private void leaveToMenu() {
+        if (busy) {
+            return;
+        }
+        if (unsaved) {
+            String[] options = {"Save and leave", "Leave without saving", "Cancel"};
+            int choice = JOptionPane.showOptionDialog(this,
+                    "You have unsaved progress. If you go back to the main menu it will be lost.",
+                    "Unsaved game", JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE,
+                    null, options, options[0]);
+            if (choice == 0) {
+                if (!save()) {
+                    return;
+                }
+            } else if (choice != 1) {
+                return;
+            }
+        }
+        game.returnToMenu();
+        unsaved = false;
+        endingShown = false;
+        clearStory();
+        onMenu.run();
+    }
+
     private void load() {
         List<String> saves = game.listSaves();
         if (saves.isEmpty()) {
@@ -301,6 +335,7 @@ final class GamePanel extends BackdropPanel implements GameView {
         buttons.add(undo);
         buttons.add(save);
         buttons.add(load);
+        buttons.add(menu);
         JPanel south = new JPanel(new BorderLayout(0, 8));
         south.setOpaque(false);
         south.add(row, BorderLayout.NORTH);
@@ -315,6 +350,7 @@ final class GamePanel extends BackdropPanel implements GameView {
         undo.setEnabled(!busy && !over);
         save.setEnabled(!busy && !over);
         load.setEnabled(!busy);
+        menu.setEnabled(!busy);
     }
 
     private void setStatus(String text, Color colour) {

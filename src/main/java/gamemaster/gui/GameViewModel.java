@@ -12,7 +12,7 @@ import java.util.List;
 record GameViewModel(String title, String phase, String scene, List<Card> heroes, List<Card> enemies, boolean over) {
 
     /** One hero or enemy as shown on a card. */
-    record Card(String name, String detail, int health, int maxHealth, boolean alive, String look) {}
+    record Card(String name, String detail, int health, int maxHealth, boolean alive, String look, String tooltip) {}
 
     static GameViewModel from(GameState s) {
         List<Card> heroes = s.getParty().getCharacters().stream().map(GameViewModel::hero).toList();
@@ -28,12 +28,34 @@ record GameViewModel(String title, String phase, String scene, List<Card> heroes
     private static Card hero(Character c) {
         return new Card(c.getName(), c.getCharacterClass().name() + "  -  AC " + c.getArmorClass(),
                 c.getHealth(), c.getMaxHealth(), c.isAlive(),
-                Sprites.lookForHero(c.getCharacterClass().name()));
+                Sprites.lookForHero(c.getCharacterClass().name()), attacksText(c));
     }
 
     private static Card enemy(Monster m) {
         return new Card(m.getName(), m.getWeapon().name() + "  -  AC " + m.getArmorClass(),
                 m.getHealth(), m.getMaxHealth(), m.isAlive(),
-                Sprites.lookForEnemy(m.getName(), m.getWeapon().name()));
+                Sprites.lookForEnemy(m.getName(), m.getWeapon().name()), "");
+    }
+
+    /** One line per attack the hero can use, for the card's tooltip. */
+    static String attacksText(Character c) {
+        StringBuilder sb = new StringBuilder("<html><b>" + c.getName() + " can use:</b>");
+        for (var w : c.getCharacterClass().attacks()) {
+            sb.append("<br>").append(w.name()).append(" - d").append(w.damageSides())
+                    .append(", ").append(w.attackBonus() >= 0 ? "+" : "").append(w.attackBonus()).append(" to hit");
+        }
+        return sb.append("</html>").toString();
+    }
+
+    /** The same list as plain text, for the story pane. */
+    static String attacksLine(Character c) {
+        StringBuilder sb = new StringBuilder(c.getName() + " (" + c.getCharacterClass().name() + ") attacks: ");
+        boolean first = true;
+        for (var w : c.getCharacterClass().attacks()) {
+            sb.append(first ? "" : "; ").append(w.name()).append(" d").append(w.damageSides()).append(' ')
+                    .append(w.attackBonus() >= 0 ? "+" : "").append(w.attackBonus());
+            first = false;
+        }
+        return sb.toString();
     }
 }

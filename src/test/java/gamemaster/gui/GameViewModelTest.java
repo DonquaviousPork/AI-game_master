@@ -101,4 +101,14 @@ class GameViewModelTest {
         assertEquals(GuiTheme.HEALTH_LOW, HealthBar.colourFor(4, 20));
         assertEquals(GuiTheme.HEALTH_LOW, HealthBar.colourFor(0, 20));
     }
+
+    @Test
+    void heroCardsCarryTheirFourAttacksForTheTooltipAndEnemiesDoNot() {
+        GameEngine e = engine();
+        GameViewModel m = GameViewModel.from(e.getState());
+        String tip = m.heroes().get(0).tooltip();
+        assertTrue(tip.contains("Slash - d8, +0 to hit"), tip);
+        assertTrue(tip.contains("Power Strike - d12, -3 to hit"), tip);
+        assertTrue(GameViewModel.attacksLine(e.getState().getParty().getCharacters().get(0)).contains("Shield Bash d4 +2"));
+    }
 }

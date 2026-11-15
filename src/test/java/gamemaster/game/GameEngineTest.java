@@ -55,7 +55,7 @@ class GameEngineTest {
 
     @Test
     void killingTheLastMonsterReturnsToStory() {
-        GameEngine e = engine(20, 8); // hit, d8 8 + 2 = 10 damage
+        GameEngine e = engine(19, 8); // hit, d8 8 + 2 = 10 damage
         start(e);
         e.addMonster(goblin());
         e.resolveAction(new AttackAction(fighter, Weapon.LONGSWORD, e.getState().getMonsters().get(0)));
@@ -189,7 +189,7 @@ class GameEngineTest {
 
     @Test
     void undoingTheKillingBlowReturnsToCombat() {
-        GameEngine e = engine(20, 8);
+        GameEngine e = engine(19, 8);
         start(e);
         Monster g = goblin();
         e.addMonster(g);
@@ -267,5 +267,42 @@ class GameEngineTest {
     void blankScenarioTitleAndEventAreRejected() {
         assertThrows(IllegalArgumentException.class, () -> new Scenario(" ", "x"));
         assertThrows(IllegalArgumentException.class, () -> new StoryEvent(" "));
+    }
+
+    @Test
+    void aCriticalHitIsReportedAndDealsDoubleDice() {
+        GameEngine e = engine(20, 3, 4);     // natural 20; d8 rolls 3 and 4, +2 STR = 9
+        start(e);
+        Monster g = new Monster("Ogre", 30, 30, Weapon.LONGSWORD);
+        e.addMonster(g);
+        String text = e.resolveAction(new AttackAction(fighter, Weapon.LONGSWORD, g)).summary();
+        assertTrue(text.contains("CRITICAL HIT"), text);
+        assertEquals(21, g.getHealth());
+        e.undoLast();
+        assertEquals(30, g.getHealth());
+    }
+
+    @Test
+    void aFumbleIsReportedAndDealsNoDamage() {
+        GameEngine e = engine(1);
+        start(e);
+        Monster g = goblin();
+        e.addMonster(g);
+        String text = e.resolveAction(new AttackAction(fighter, Weapon.LONGSWORD, g)).summary();
+        assertTrue(text.contains("FUMBLE"), text);
+        assertEquals(7, g.getHealth());
+    }
+
+    @Test
+    void resetReturnsToAnEmptySetupAndForgetsTheUndoHistory() {
+        GameEngine e = engine(19, 8);
+        start(e);
+        e.addMonster(goblin());
+        e.reset();
+        assertEquals("Setup", e.getState().getPhase().name());
+        assertEquals(0, e.getState().getParty().getCharacters().size());
+        assertEquals(0, e.getState().getMonsters().size());
+        assertTrue(e.getState().getScenario() == null);
+        assertFalse(e.undoLast());
     }
 }

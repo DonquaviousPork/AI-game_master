@@ -105,6 +105,12 @@ public class GameFacade {
         return engine.undoLast();
     }
 
+    /** Abandons the current game and goes back to an empty setup (the interface warns about unsaved progress). */
+    public void returnToMenu() {
+        engine.reset();
+        memory.restore("", List.of());
+    }
+
     // ---- saving ----
 
     public void save(String slot) {

@@ -224,6 +224,12 @@ final class SetupPanel extends BackdropPanel {
 
     // ---- display ----
 
+    /** Called when the player comes back from a game: shows the (now empty) party list again. */
+    void showMenu() {
+        status.setText(" ");
+        refreshParty();
+    }
+
     private void refreshParty() {
         partyRows.removeAll();
         List<Character> party = game.getParty();

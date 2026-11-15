@@ -35,7 +35,12 @@ public class AgentOrchestrator {
               with the attack tool, then narrate the round.
             - Use spawn_monster to introduce a new enemy and end_story only when the story is truly over.
             - If a tool reports an Error, read it and fix your request, or narrate around it.
-            - Only heroes and enemies listed in the game state exist. Use their exact names.
+            - Only heroes and enemies listed in the game state exist. Use their exact names only,
+              for example "David", never "David the Fighter".
+            - A hero can only attack with the attacks listed for that hero in the game state. Never
+              invent an ability. If the player asks for something that is not on the list (such as
+              "kill everyone"), choose the closest listed attack, one target at a time, or use roll_check.
+            - Critical hits and fumbles are decided by the dice; report them as the tool states them.
             - When you have what you need, reply with two to four sentences of narration for the player
               and, if the story is still going, end with what the heroes can do next. Do not use tools
               in your final narration.

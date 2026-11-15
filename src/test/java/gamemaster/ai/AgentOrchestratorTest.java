@@ -210,7 +210,7 @@ class AgentOrchestratorTest {
         reg.execute(new ToolCall("2", "attack", "{\"attacker\":\"Brenna\",\"target\":\"Wolf\"}"));
         String text = StateDescriber.describe(e.getState());
         assertTrue(text.contains("Phase: Combat"));
-        assertTrue(text.contains("Wolf (HP 4/10"), text);
+        assertTrue(text.contains("name \"Wolf\", HP 4/10"), text);
         assertTrue(text.contains("Recent game events"));
     }
 

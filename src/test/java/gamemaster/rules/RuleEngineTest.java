@@ -179,4 +179,49 @@ class RuleEngineTest {
         Monster g = goblin();
         assertEquals(3, engine.rollDamage(g, g.getWeapon()));
     }
+
+    // ---- critical hits, fumbles and attack bonuses ----
+
+    private Monster toughTarget() { return new Monster("Ogre", 30, 30, Weapon.LONGSWORD); }
+
+    @Test
+    void aNaturalTwentyAlwaysHitsAndIsCritical() {
+        AttackResult r = new RuleEngine(new FixedDice(20)).rollAttack(fighter(), Weapon.LONGSWORD, toughTarget());
+        assertTrue(r.hit());
+        assertTrue(r.critical());
+        assertFalse(r.fumble());
+    }
+
+    @Test
+    void aNaturalOneAlwaysMissesEvenWhenTheTotalWouldHit() {
+        Monster easy = new Monster("Rat", 3, 2, Weapon.DAGGER);
+        AttackResult r = new RuleEngine(new FixedDice(1)).rollAttack(fighter(), Weapon.LONGSWORD, easy);
+        assertFalse(r.hit());
+        assertTrue(r.fumble());
+        assertFalse(r.critical());
+    }
+
+    @Test
+    void anOrdinaryRollIsNeitherCriticalNorFumble() {
+        AttackResult r = new RuleEngine(new FixedDice(12)).rollAttack(fighter(), Weapon.LONGSWORD, goblin());
+        assertFalse(r.critical());
+        assertFalse(r.fumble());
+    }
+
+    @Test
+    void aCriticalHitRollsTheDamageDieTwiceAndAddsTheModifierOnce() {
+        // d8 rolls 5 and 6, STR modifier +2
+        assertEquals(13, new RuleEngine(new FixedDice(5, 6)).rollDamage(fighter(), Weapon.LONGSWORD, true));
+        assertEquals(7, new RuleEngine(new FixedDice(5)).rollDamage(fighter(), Weapon.LONGSWORD, false));
+    }
+
+    @Test
+    void anAttacksBonusIsAddedToTheAttackRoll() {
+        Weapon bash = new Weapon("Shield Bash", 4, Stat.STRENGTH, 2);
+        AttackResult r = new RuleEngine(new FixedDice(10)).rollAttack(fighter(), bash, goblin());
+        assertEquals(4, r.modifier());   // +2 STR, +2 attack bonus
+        assertEquals(14, r.total());
+        Weapon heavy = new Weapon("Power Strike", 12, Stat.STRENGTH, -3);
+        assertEquals(-1, new RuleEngine(new FixedDice(10)).rollAttack(fighter(), heavy, goblin()).modifier());
+    }
 }

@@ -80,6 +80,12 @@ public class GameEngine {
         advancePhase();
     }
 
+    /** Abandons the current game and returns to an empty Setup state; the undo history is dropped as well. */
+    public void reset() {
+        state.reset();
+        history.clear();
+    }
+
     public boolean checkEndCondition() {
         return state.isConcluded() || state.getParty().isDefeated();
     }

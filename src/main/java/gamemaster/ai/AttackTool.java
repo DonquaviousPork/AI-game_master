@@ -20,10 +20,12 @@ public class AttackTool implements Tool {
     public ToolSpec spec() {
         return new ToolSpec("attack",
                 "Make one combatant attack an opponent during combat. The game rolls to hit and for damage. "
-                        + "Heroes may only attack monsters and monsters may only attack heroes.",
+                        + "Heroes may only attack monsters and monsters may only attack heroes. "
+                        + "A hero can only use the attacks listed for that hero in the game state.",
                 Schema.object()
-                        .string("attacker", "Name of the attacking hero or monster", true)
-                        .string("target", "Name of the opponent being attacked", true)
+                        .string("attacker", "Exact name of the attacking hero or monster (the name only, no class)", true)
+                        .string("target", "Exact name of the opponent being attacked (the name only)", true)
+                        .string("attack", "For a hero: one of that hero's listed attacks. Leave out for a monster.", false)
                         .build());
     }
 
@@ -36,7 +38,9 @@ public class AttackTool implements Tool {
             throw new IllegalArgumentException("Heroes and monsters fight each other; "
                     + attacker.getName() + " cannot attack " + target.getName() + ".");
         }
-        String result = engine.resolveAction(new AttackAction(attacker, Lookup.weaponOf(attacker), target)).summary();
+        String attackName = args.has("attack") && !args.get("attack").isJsonNull() ? args.get("attack").getAsString() : null;
+        String result = engine.resolveAction(
+                new AttackAction(attacker, Lookup.weaponOf(attacker, attackName), target)).summary();
         return result + " " + target.getName() + " now has " + target.getHealth() + "/"
                 + target.getMaxHealth() + " HP. Phase: " + state.getPhase().name() + ".";
     }

@@ -150,4 +150,20 @@ class CliSessionTest {
         }
         assertEquals("", CliSession.wrap(""));
     }
+
+    @Test
+    void newAbandonsTheAdventureAndStartsSetupAgain() throws Exception {
+        FakeLLM llm = new FakeLLM(SCENARIO, SCENARIO);
+        String out = run(llm, String.join("\n",
+                "/add Fighter Brenna", "/start crypt", "/new", "/party", "/add Wizard Mira", "/start again", "/quit"));
+        assertTrue(out.contains("Adventure abandoned"), out);
+        assertTrue(out.contains("Your party is empty."), out);
+        assertTrue(out.indexOf("*** The Hollow Crypt ***") != out.lastIndexOf("*** The Hollow Crypt ***"), out);
+    }
+
+    @Test
+    void thePartyListShowsEachHerosFourAttacks() throws Exception {
+        String out = run(new FakeLLM(), String.join("\n", "/add Fighter Brenna", "/party", "/quit"));
+        assertTrue(out.contains("attacks: Slash d8 +0; Shield Bash d4 +2; Power Strike d12 -3; Throwing Axe d6 +0"), out);
+    }
 }

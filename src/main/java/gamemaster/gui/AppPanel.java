@@ -12,12 +12,13 @@ final class AppPanel extends JPanel {
 
     private final CardLayout cards = new CardLayout();
     private final GamePanel play;
+    private final SetupPanel setup;
 
     AppPanel(GameFacade game) {
         super(new CardLayout());
         setLayout(cards);
         play = new GamePanel(game);
-        SetupPanel setup = new SetupPanel(game,
+        setup = new SetupPanel(game,
                 scenario -> {
                     play.begin(scenario);
                     cards.show(this, PLAY);
@@ -26,6 +27,10 @@ final class AppPanel extends JPanel {
                     play.resume();
                     cards.show(this, PLAY);
                 });
+        play.setOnMenu(() -> {
+            setup.showMenu();
+            cards.show(this, SETUP);
+        });
         add(setup, SETUP);
         add(play, PLAY);
         cards.show(this, SETUP);
