@@ -5,7 +5,9 @@ import gamemaster.model.Monster;
 import gamemaster.model.Party;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -26,6 +28,19 @@ public class GameState {
     private boolean concluded;
     private int turnsTaken;
     private boolean objectiveAchieved;
+    private int milestoneIndex, beatSuccesses, beatKills, beatTurns, beatFailures;
+    private int checkFailStreak, spawnsThisTurn, healsUsed;
+    /** Active effects by combatant name; the number is the turns left. */
+    private final Map<String, Map<StatusKind, Integer>> statuses = new LinkedHashMap<>();
+    /** Enemies that have already used an effect this turn (each may use one per turn). */
+    private final java.util.Set<String> effectUsers = new java.util.HashSet<>();
+
+    /** Healing Light can be cast this many times in one adventure. */
+    public static final int HEALS_PER_ADVENTURE = 2;
+    /** After this many failed checks in a row, the next one is easier. */
+    public static final int FAILS_BEFORE_EASIER = 2;
+    /** A challenge act ends after this many failed checks (the party pushes through). */
+    public static final int FAILS_TO_PUSH_THROUGH = 3;
 
     /** An adventure lasts this many player turns; the engine ends it when they are used up. */
     public static final int TURN_LIMIT = 20;
@@ -75,6 +90,88 @@ public class GameState {
         this.turnLimit = turns;
     }
     public boolean isObjectiveAchieved() { return objectiveAchieved; }
+
+    // ---- Story acts ----
+
+    private List<Milestone> acts() { return scenario == null ? List.of() : scenario.milestones(); }
+
+    /** The act the party is in, or null when there are no acts or all are done (the final showdown). */
+    public Milestone currentMilestone() {
+        return milestoneIndex < acts().size() ? acts().get(milestoneIndex) : null;
+    }
+
+    public int getMilestoneIndex() { return milestoneIndex; }
+
+    /** True when the story has no acts, or every act is finished: the final enemy may appear and be fought. */
+    public boolean inFinale() { return milestoneIndex >= acts().size(); }
+
+    public int getBeatTurns() { return beatTurns; }
+
+    /** A short line such as "Act 2 of 3: The Cold Flame" for the screen and the CLI; empty when there are no acts. */
+    public String progressText() {
+        if (acts().isEmpty()) {
+            return "";
+        }
+        int total = acts().size() + 1;
+        return inFinale() ? "Act " + total + " of " + total + ": the showdown"
+                : "Act " + (milestoneIndex + 1) + " of " + total + ": " + currentMilestone().title();
+    }
+
+    /** Called by the engine after a roll succeeded. */
+    public void noteSuccess() { beatSuccesses++; }
+
+    /** Called by the engine after every ability check: tracks the run of failures that makes the next check easier. */
+    public void noteCheck(boolean success) {
+        if (success) {
+            checkFailStreak = 0;
+        } else {
+            checkFailStreak++;
+            beatFailures++;
+        }
+    }
+
+    public int getCheckFailStreak() { return checkFailStreak; }
+
+    public int getBeatFailures() { return beatFailures; }
+
+    public int getSpawnsThisTurn() { return spawnsThisTurn; }
+
+    public void noteSpawn() { spawnsThisTurn++; }
+
+    public int healsLeft() { return Math.max(0, HEALS_PER_ADVENTURE - healsUsed); }
+
+    public int getHealsUsed() { return healsUsed; }
+
+    public void noteHeal() { healsUsed++; }
+
+    /** Gives a Healing Light use back (used when the cast is undone). */
+    public void undoHeal() { healsUsed = Math.max(0, healsUsed - 1); }
+
+    /** Called by the engine after enemies were defeated. */
+    public void noteKills(int count) { beatKills += count; }
+
+    /** Moves on to the next act and starts its counters from zero. */
+    public void advanceMilestone() {
+        milestoneIndex++;
+        beatSuccesses = 0;
+        beatKills = 0;
+        beatTurns = 0;
+        beatFailures = 0;
+        statuses.clear();
+        effectUsers.clear();
+        changed();
+    }
+
+    /** True when the current act's condition has been seen by the engine. */
+    public boolean currentMilestoneDone() {
+        Milestone m = currentMilestone();
+        if (m == null) {
+            return false;
+        }
+        return m.kind() == MilestoneKind.CHALLENGE ? beatSuccesses >= 1 || beatFailures >= FAILS_TO_PUSH_THROUGH
+                : beatKills >= 1;
+    }
+
     public List<Monster> getMonsters() { return Collections.unmodifiableList(monsters); }
     public List<String> getLog() { return Collections.unmodifiableList(log); }
 
@@ -88,6 +185,14 @@ public class GameState {
         this.scenario = Objects.requireNonNull(scenario, "scenario");
         this.turnsTaken = 0;
         this.objectiveAchieved = false;
+        this.milestoneIndex = 0;
+        this.beatSuccesses = 0;
+        this.beatKills = 0;
+        this.beatTurns = 0;
+        this.beatFailures = 0;
+        this.checkFailStreak = 0;
+        this.spawnsThisTurn = 0;
+        this.healsUsed = 0;
         changed();
     }
 
@@ -128,8 +233,62 @@ public class GameState {
     /** Counts one player turn. Called by the AI layer at the start of each turn. */
     public void startTurn() {
         turnsTaken++;
+        beatTurns++;
+        spawnsThisTurn = 0;
+        effectUsers.clear();
         changed();
     }
+
+    // ---- status effects ----
+
+    /** Turns left of an effect on this combatant, 0 when it is not affected. */
+    public int statusTurns(String name, StatusKind kind) {
+        Map<StatusKind, Integer> m = statuses.get(name);
+        return m == null ? 0 : m.getOrDefault(kind, 0);
+    }
+
+    /** Puts the effect on a combatant for {@link StatusKind#DURATION} turns; returns the turns it had before (0 if none). */
+    public int applyStatus(String name, StatusKind kind) {
+        int before = statusTurns(name, kind);
+        setStatusTurns(name, kind, StatusKind.DURATION);
+        return before;
+    }
+
+    /** Sets the turns left (0 removes the effect). Used by undo and by the end-of-turn count. */
+    public void setStatusTurns(String name, StatusKind kind, int turns) {
+        if (turns <= 0) {
+            Map<StatusKind, Integer> m = statuses.get(name);
+            if (m != null) {
+                m.remove(kind);
+                if (m.isEmpty()) {
+                    statuses.remove(name);
+                }
+            }
+        } else {
+            statuses.computeIfAbsent(name, k -> new java.util.EnumMap<>(StatusKind.class)).put(kind, turns);
+        }
+        changed();
+    }
+
+    /** A copy of the effects on one combatant, in a fixed order. */
+    public Map<StatusKind, Integer> statusesOf(String name) {
+        Map<StatusKind, Integer> m = statuses.get(name);
+        return m == null ? Map.of() : new java.util.EnumMap<>(m);
+    }
+
+    public List<String> statusNames() { return List.copyOf(statuses.keySet()); }
+
+    public void clearStatuses() {
+        if (!statuses.isEmpty()) {
+            statuses.clear();
+            changed();
+        }
+    }
+
+    /** True the first time an enemy asks to use an effect in a turn; false afterwards. */
+    public boolean claimEffect(String name) { return effectUsers.add(name); }
+
+    public void releaseEffect(String name) { effectUsers.remove(name); }
 
     public void conclude() {
         conclude(false);
@@ -156,6 +315,14 @@ public class GameState {
         concluded = false;
         turnsTaken = 0;
         objectiveAchieved = false;
+        milestoneIndex = 0;
+        beatSuccesses = 0;
+        beatKills = 0;
+        beatTurns = 0;
+        beatFailures = 0;
+        checkFailStreak = 0;
+        spawnsThisTurn = 0;
+        healsUsed = 0;
         log.clear();
         phase = new SetupPhase();
         changed();
@@ -181,7 +348,15 @@ public class GameState {
                 turnsTaken,
                 objectiveAchieved,
                 scenario == null ? "NARRATIVE" : scenario.type().name(),
-                scenario == null ? "" : scenario.target());
+                scenario == null ? "" : scenario.target(),
+                acts().stream().map(GameSnapshot.MilestoneData::of).toList(),
+                milestoneIndex, beatSuccesses, beatKills, beatTurns, beatFailures, healsUsed, statusLines());
+    }
+
+    private List<String> statusLines() {
+        List<String> out = new java.util.ArrayList<>();
+        statuses.forEach((name, m) -> m.forEach((k, t) -> out.add(name + "|" + k.name() + "|" + t)));
+        return out;
     }
 
     /**
@@ -195,7 +370,8 @@ public class GameState {
         List<Monster> enemies = snapshot.monsters().stream().map(GameSnapshot.MonsterData::toMonster).toList();
         Scenario newScenario = snapshot.scenarioTitle() == null ? null
                 : new Scenario(snapshot.scenarioTitle(), snapshot.scenarioDescription(), snapshot.objective(),
-                        ObjectiveType.parse(snapshot.objectiveType()), snapshot.objectiveTarget());
+                        ObjectiveType.parse(snapshot.objectiveType()), snapshot.objectiveTarget(),
+                        snapshot.milestones().stream().map(GameSnapshot.MilestoneData::toMilestone).toList());
         StoryEvent newEvent = snapshot.currentEvent() == null || snapshot.currentEvent().isBlank() ? null
                 : new StoryEvent(snapshot.currentEvent());
 
@@ -207,6 +383,28 @@ public class GameState {
         concluded = snapshot.concluded();
         turnsTaken = snapshot.turnsTaken();
         objectiveAchieved = snapshot.objectiveAchieved();
+        milestoneIndex = Math.min(snapshot.milestoneIndex(), newScenario == null ? 0 : newScenario.milestones().size());
+        beatSuccesses = snapshot.beatSuccesses();
+        beatKills = snapshot.beatKills();
+        beatTurns = snapshot.beatTurns();
+        beatFailures = snapshot.beatFailures();
+        healsUsed = Math.min(snapshot.healsUsed(), HEALS_PER_ADVENTURE);
+        checkFailStreak = 0;
+        spawnsThisTurn = 0;
+        effectUsers.clear();
+        statuses.clear();
+        for (String line : snapshot.statuses()) {
+            String[] parts = line.split("\\|");
+            if (parts.length == 3) {
+                try {
+                    StatusKind.parse(parts[1]).ifPresent(k -> statuses
+                            .computeIfAbsent(parts[0], n -> new java.util.EnumMap<>(StatusKind.class))
+                            .put(k, Math.min(StatusKind.DURATION, Integer.parseInt(parts[2].trim()))));
+                } catch (NumberFormatException ignored) {
+                    // a damaged effect line is skipped; the rest of the save still loads
+                }
+            }
+        }
         log.clear();
         log.addAll(snapshot.log());
         phase = new SetupPhase();

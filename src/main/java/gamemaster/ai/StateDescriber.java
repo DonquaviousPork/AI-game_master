@@ -15,6 +15,46 @@ final class StateDescriber {
 
     private StateDescriber() {}
 
+    /** The story's acts: which are done, which is current, what it needs, and what each scene must add. */
+    private static void describeActs(StringBuilder sb, GameState state) {
+        var scenario = state.getScenario();
+        var acts = scenario.milestones();
+        sb.append("STORY ACTS (tracked by the game; an act ends only when the game sees what it needs, and you "
+                + "cannot skip ahead; never tell the player the act numbers):\n");
+        for (int i = 0; i < acts.size(); i++) {
+            String mark = i < state.getMilestoneIndex() ? "[done]" : i == state.getMilestoneIndex() ? "[CURRENT]" : "[later]";
+            sb.append("  ").append(mark).append(" Act ").append(i + 1).append(": ").append(acts.get(i).title())
+                    .append(" - ").append(acts.get(i).description()).append('\n');
+        }
+        sb.append("  ").append(state.inFinale() ? "[CURRENT]" : "[later]").append(" Final act: the showdown with ")
+                .append(scenario.target()).append(" (the climax)\n");
+        var current = state.currentMilestone();
+        if (current != null) {
+            sb.append("THE CURRENT ACT IS \"").append(current.title()).append("\". Play out what it describes: ")
+                    .append(current.description()).append(" ");
+            if (current.kind() == gamemaster.game.MilestoneKind.CHALLENGE) {
+                sb.append("It ends when a hero succeeds at a roll that moves it forward: put a real obstacle or "
+                        + "puzzle in the scene and call roll_check (or saving_throw) for it.\n");
+            } else {
+                sb.append("It ends when the party defeats an enemy: bring in a minor foe now with spawn_monster "
+                        + "(NOT ").append(scenario.target()).append(") and fight it.\n");
+            }
+            sb.append("Every scene must add something new (a clue, a reveal, a complication or higher stakes). "
+                    + "Never write filler like \"you are getting closer\"; show a concrete event instead. "
+                    + "The boss \"").append(scenario.target()).append("\" cannot appear until the final act.\n");
+            if (state.getBeatTurns() >= 5) {
+                sb.append("This act has already lasted ").append(state.getBeatTurns()).append(" turns: it is overdue, so "
+                        + "force it to a head this turn.\n");
+            }
+        } else {
+            boolean onField = state.getMonsters().stream().anyMatch(m -> m.getName().equalsIgnoreCase(scenario.target()));
+            sb.append(onField ? "THE FINAL ACT: this is the climax. Make it tense and dramatic; the fight with \""
+                    + scenario.target() + "\" decides the story.\n"
+                    : "THE FINAL ACT BEGINS: bring in \"" + scenario.target() + "\" now with spawn_monster using exactly "
+                    + "that name, with a dramatic entrance. It is the climax of the story.\n");
+        }
+    }
+
     static String describe(GameState state) {
         StringBuilder sb = new StringBuilder();
         if (state.getScenario() != null) {
@@ -41,8 +81,10 @@ final class StateDescriber {
                 }
             }
             var scenario = state.getScenario();
-            if (scenario.type() == gamemaster.game.ObjectiveType.DEFEAT_TARGET && state.getMonsters().stream()
-                    .noneMatch(m -> m.getName().equalsIgnoreCase(scenario.target()))) {
+            boolean targetOnField = state.getMonsters().stream().anyMatch(m -> m.getName().equalsIgnoreCase(scenario.target()));
+            if (!scenario.milestones().isEmpty()) {
+                describeActs(sb, state);
+            } else if (scenario.type() == gamemaster.game.ObjectiveType.DEFEAT_TARGET && !targetOnField) {
                 sb.append("The enemy \"").append(scenario.target()).append("\" has not appeared yet. Build the story "
                         + "first (scenes, clues, talk), then bring it in with spawn_monster using exactly that name "
                         + "by about the halfway turn, so the showdown happens and the adventure has a proper ending.\n");
@@ -59,6 +101,19 @@ final class StateDescriber {
                 sb.append("Keep every scene moving toward the objective.\n");
             }
         }
+        if (state.getScenario() != null && state.getPhase().allows(gamemaster.game.ActionKind.ABILITY_CHECK)) {
+            sb.append("Enemy budget: at most ").append(EncounterBudget.slotsLeft(state)).append(" more enemies (")
+                    .append(EncounterBudget.hpLeft(state)).append(" total health left to spend, ")
+                    .append(EncounterBudget.MAX_SPAWNS_PER_TURN).append(" new enemies per turn at most). ")
+                    .append("The final enemy is exempt but its health is capped at ")
+                    .append(EncounterBudget.bossCap(state)).append(".\n");
+            boolean wizard = state.getParty().getCharacters().stream()
+                    .anyMatch(c -> c.isAlive() && c.getCharacterClass().name().equalsIgnoreCase("Wizard"));
+            if (wizard) {
+                sb.append("Healing Light (heal_party, wizards only, heals every living hero): ")
+                        .append(state.healsLeft()).append(" uses left.\n");
+            }
+        }
         sb.append("Phase: ").append(state.getPhase().name()).append('\n');
         sb.append("Party:\n");
         for (Character c : state.getParty().getCharacters()) {
@@ -68,6 +123,7 @@ final class StateDescriber {
             if (c.isAlive()) {
                 sb.append("      attacks: ").append(Lookup.attackList(c.getCharacterClass().attacks())).append('\n');
             }
+            appendStatuses(sb, state, c.getName());
         }
         List<Monster> monsters = state.getMonsters();
         if (monsters.isEmpty()) {
@@ -78,6 +134,7 @@ final class StateDescriber {
                 sb.append("  - name \"").append(m.getName()).append("\", HP ").append(m.getHealth()).append('/')
                         .append(m.getMaxHealth()).append(", AC ").append(m.getArmorClass())
                         .append(m.isAlive() ? "" : " [DEFEATED]").append('\n');
+                appendStatuses(sb, state, m.getName());
             }
         }
         if (state.getCurrentEvent() != null) {
@@ -91,5 +148,21 @@ final class StateDescriber {
             }
         }
         return sb.toString();
+    }
+
+    /** One line listing the effects on a combatant, e.g. "effects: burning (2 turns left)". */
+    private static void appendStatuses(StringBuilder sb, GameState state, String name) {
+        var active = state.statusesOf(name);
+        if (active.isEmpty()) {
+            return;
+        }
+        sb.append("      effects: ");
+        boolean first = true;
+        for (var e : active.entrySet()) {
+            sb.append(first ? "" : ", ").append(e.getKey().adjective()).append(" (").append(e.getValue())
+                    .append(e.getValue() == 1 ? " turn left)" : " turns left)");
+            first = false;
+        }
+        sb.append('\n');
     }
 }

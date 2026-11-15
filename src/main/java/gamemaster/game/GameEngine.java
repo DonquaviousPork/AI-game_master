@@ -50,10 +50,22 @@ public class GameEngine {
 
     public ActionResult resolveAction(Action action) {
         validate(action);
+        long deadBefore = state.getMonsters().stream().filter(m -> !m.isAlive()).count();
         ActionResult result = action.execute(state, rules);
         history.record(action);
         state.addLog(result.summary());
         advancePhase();
+        long defeated = state.getMonsters().stream().filter(m -> !m.isAlive()).count() - deadBefore;
+        if (defeated > 0) {
+            state.noteKills((int) defeated);
+        }
+        if (result.success()) {
+            state.noteSuccess();
+        }
+        if (action.kind() == ActionKind.ABILITY_CHECK) {
+            state.noteCheck(result.success());
+        }
+        checkMilestone();
         checkObjective();
         return result;
     }
@@ -67,6 +79,9 @@ public class GameEngine {
         if (scenario == null || state.getParty().isDefeated()) {
             return false;
         }
+        if (!state.inFinale()) {
+            return false;   // the showdown only counts once every act before it is finished
+        }
         var monsters = state.getMonsters();
         return switch (scenario.type()) {
             case DEFEAT_TARGET -> monsters.stream()
@@ -75,6 +90,18 @@ public class GameEngine {
             case DEFEAT_ALL -> !monsters.isEmpty() && monsters.stream().noneMatch(m -> m.isAlive());
             case SURVIVE, NARRATIVE -> false;
         };
+    }
+
+    /** Moves the story on to the next act when the engine has seen what the current act needs. */
+    private void checkMilestone() {
+        if (!state.isConcluded() && state.currentMilestoneDone()) {
+            var done = state.currentMilestone();
+            boolean pushed = state.getBeatFailures() >= GameState.FAILS_TO_PUSH_THROUGH
+                    && done.kind() == MilestoneKind.CHALLENGE;
+            state.advanceMilestone();
+            state.addLog("Act complete: " + done.title() + (pushed ? " (the party pushes through despite setbacks)" : "")
+                    + (state.inFinale() ? " - the showdown begins." : "."));
+        }
     }
 
     /** Ends the story as a victory the moment a typed objective is met. */
@@ -123,12 +150,61 @@ public class GameEngine {
         return state.isConcluded() || state.getParty().isDefeated();
     }
 
+    /**
+     * Start of a player turn: effects do their work and count down. Burn deals its damage; every effect loses a turn
+     * and ends at zero. Returns one line per thing that happened, for the log and the turn's tool activity.
+     */
+    public java.util.List<String> tickStatuses() {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        long deadBefore = state.getMonsters().stream().filter(m -> !m.isAlive()).count();
+        for (String name : state.statusNames()) {
+            var who = java.util.stream.Stream.concat(
+                    state.getParty().getCharacters().stream().map(c -> (gamemaster.model.Combatant) c),
+                    state.getMonsters().stream().map(m -> (gamemaster.model.Combatant) m))
+                    .filter(c -> c.getName().equals(name)).findFirst().orElse(null);
+            if (who == null || !who.isAlive()) {
+                state.setStatusTurns(name, StatusKind.BURN, 0);
+                state.setStatusTurns(name, StatusKind.CHILL, 0);
+                state.setStatusTurns(name, StatusKind.WEAKEN, 0);
+                continue;
+            }
+            for (var entry : state.statusesOf(name).entrySet()) {
+                StatusKind kind = entry.getKey();
+                if (kind == StatusKind.BURN && who.isAlive()) {
+                    int before = who.getHealth();
+                    who.applyDamage(StatusKind.BURN_DAMAGE);
+                    String line = name + " takes " + (before - who.getHealth()) + " burn damage ("
+                            + who.getHealth() + "/" + who.getMaxHealth() + " HP)."
+                            + (who.isAlive() ? "" : " " + name + " is defeated.");
+                    out.add(line);
+                }
+                int left = entry.getValue() - 1;
+                state.setStatusTurns(name, kind, left);
+                if (left <= 0) {
+                    out.add(name + " is no longer " + kind.adjective() + ".");
+                }
+            }
+        }
+        out.forEach(state::addLog);
+        advancePhase();
+        long defeated = state.getMonsters().stream().filter(m -> !m.isAlive()).count() - deadBefore;
+        if (defeated > 0) {
+            state.noteKills((int) defeated);
+        }
+        checkMilestone();
+        checkObjective();
+        return out;
+    }
+
     /** Moves through phases until the state no longer asks for a change. */
     public void advancePhase() {
         GamePhase next = state.getPhase().next(state);
         while (!next.name().equals(state.getPhase().name())) {
             state.setPhase(next);
             next = state.getPhase().next(state);
+        }
+        if (!state.hasLivingMonsters()) {
+            state.clearStatuses();      // effects only last while a fight does
         }
     }
 }

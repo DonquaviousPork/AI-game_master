@@ -45,7 +45,7 @@ class AgentOrchestratorTest {
         TurnResult r = new AgentOrchestrator(llm, e).takeTurn("I look around");
         assertEquals("The wind rustles the leaves.", r.narration());
         assertEquals(1, llm.calls.size());
-        assertEquals(5, llm.toolsOffered.get(0).size());
+        assertEquals(6, llm.toolsOffered.get(0).size());
         assertTrue(r.toolActivity().isEmpty());
         assertFalse(r.gameOver());
     }
@@ -371,11 +371,27 @@ class AgentOrchestratorTest {
     }
 
     @Test
-    void endingWithoutAchievingTheObjectiveIsNotAVictory() {
-        GameEngine e = engineWithObjective();
+    void theModelCannotEndTheStoryAsAFailureWhileTurnsRemain() {
+        GameEngine e = engine();
+        e.setScenario(new Scenario("Grove", "d", "Defeat the Wisp.", gamemaster.game.ObjectiveType.DEFEAT_TARGET, "Wisp"));
         FakeLLM llm = new FakeLLM().thenTool("end_story", "{\"ending\":\"They give up.\",\"objective_achieved\":false}")
-                .thenText("The party leaves.");
-        new AgentOrchestrator(llm, e).takeTurn("We leave");
+                .thenText("The party presses on.");
+        var r = new AgentOrchestrator(llm, e).takeTurn("We look around");
+        assertFalse(r.gameOver());
+        assertFalse(e.getState().isObjectiveAchieved());
+        assertTrue(r.toolActivity().isEmpty() || r.toolActivity().get(0).contains("cannot end in failure"), r.toolActivity().toString());
+    }
+
+    @Test
+    void theModelMayEndTheStoryAsAFailureOnTheFinalTurn() {
+        GameEngine e = engine();
+        e.setScenario(new Scenario("Grove", "d", "Defeat the Wisp.", gamemaster.game.ObjectiveType.DEFEAT_TARGET, "Wisp"));
+        for (int i = 0; i < GameState.TURN_LIMIT - 1; i++) {
+            e.getState().startTurn();
+        }
+        FakeLLM llm = new FakeLLM().thenTool("end_story", "{\"ending\":\"Time runs out.\",\"objective_achieved\":false}")
+                .thenText("The tide takes the lighthouse.");
+        assertTrue(new AgentOrchestrator(llm, e).takeTurn("We search").gameOver());
         assertFalse(e.getState().isObjectiveAchieved());
     }
 
@@ -415,5 +431,206 @@ class AgentOrchestratorTest {
         String toolMessage = llm.calls.get(1).get(llm.calls.get(1).size() - 1).content();
         assertTrue(toolMessage.contains("the story has just ended as a victory"), toolMessage);
         assertTrue(r.narration().contains("grove sighs"));
+    }
+
+    private GameEngine engineWithActs(int... rolls) {
+        GameEngine e = engine(rolls);
+        e.setScenario(new Scenario("Lighthouse", "d", "Defeat the Warden.", gamemaster.game.ObjectiveType.DEFEAT_TARGET, "Warden",
+                java.util.List.of(
+                        new gamemaster.game.Milestone("The Clue", "A torn map is found.", gamemaster.game.MilestoneKind.CHALLENGE),
+                        new gamemaster.game.Milestone("The Ambush", "Cultists strike.", gamemaster.game.MilestoneKind.COMBAT))));
+        return e;
+    }
+
+    @Test
+    void theModelSeesTheActsAndTheCurrentOne() {
+        GameEngine e = engineWithActs();
+        FakeLLM llm = new FakeLLM("The lamp flickers.");
+        new AgentOrchestrator(llm, e).takeTurn("I look around");
+        String prompt = llm.calls.get(0).get(1).content();
+        assertTrue(prompt.contains("[CURRENT] Act 1: The Clue"), prompt);
+        assertTrue(prompt.contains("[later] Act 2: The Ambush"), prompt);
+        assertTrue(prompt.contains("Final act: the showdown with Warden"), prompt);
+        assertTrue(prompt.contains("cannot appear until the final act"), prompt);
+    }
+
+    @Test
+    void theFinalEnemyCannotBeSpawnedBeforeTheFinalAct() {
+        GameEngine e = engineWithActs();
+        FakeLLM llm = new FakeLLM().thenTool("spawn_monster",
+                "{\"name\":\"Warden\",\"health\":9,\"armor_class\":12,\"weapon\":\"dagger\"}").thenText("Nothing appears.");
+        TurnResult r = new AgentOrchestrator(llm, e).takeTurn("I wait");
+        assertTrue(e.getState().getMonsters().isEmpty());
+        assertTrue(r.toolActivity().get(0).contains("cannot appear yet"), r.toolActivity().get(0));
+    }
+
+    @Test
+    void aMinorFoeCanBeSpawnedDuringAnAct() {
+        GameEngine e = engineWithActs();
+        FakeLLM llm = new FakeLLM().thenTool("spawn_monster",
+                "{\"name\":\"Cultist\",\"health\":6,\"armor_class\":10,\"weapon\":\"dagger\"}").thenText("A cultist leaps out.");
+        new AgentOrchestrator(llm, e).takeTurn("I wait");
+        assertEquals(1, e.getState().getMonsters().size());
+    }
+
+    @Test
+    void aSuccessfulRollMovesTheStoryToTheNextActAndThePromptFollows() {
+        GameEngine e = engineWithActs(20);
+        FakeLLM llm = new FakeLLM().thenTool("roll_check", CHECK).thenText("You find the map.");
+        FakeLLM second = new FakeLLM("Cultists burst in.");
+        new AgentOrchestrator(llm, e).takeTurn("I search the desk");
+        assertEquals(1, e.getState().getMilestoneIndex());
+        new AgentOrchestrator(second, e).takeTurn("I turn around");
+        String prompt = second.calls.get(0).get(1).content();
+        assertTrue(prompt.contains("[done] Act 1"), prompt);
+        assertTrue(prompt.contains("[CURRENT] Act 2: The Ambush"), prompt);
+        assertTrue(prompt.contains("bring in a minor foe"), prompt);
+    }
+
+    @Test
+    void theFinalActTellsTheModelToBringInTheBoss() {
+        GameEngine e = engineWithActs();
+        for (int i = 0; i < 2; i++) {
+            e.getState().advanceMilestone();
+        }
+        FakeLLM llm = new FakeLLM("The tower shakes.");
+        new AgentOrchestrator(llm, e).takeTurn("I climb");
+        assertTrue(llm.calls.get(0).get(1).content().contains("THE FINAL ACT BEGINS"));
+    }
+
+    @Test
+    void anOverdueActIsFlagged() {
+        GameEngine e = engineWithActs();
+        for (int i = 0; i < 5; i++) {
+            e.getState().startTurn();
+        }
+        FakeLLM llm = new FakeLLM("Time drags.");
+        new AgentOrchestrator(llm, e).takeTurn("I wait");
+        assertTrue(llm.calls.get(0).get(1).content().contains("it is overdue"));
+    }
+
+    private String spawnJson(String name, int hp) {
+        return "{\"name\":\"" + name + "\",\"health\":" + hp + ",\"armor_class\":10,\"weapon\":\"dagger\"}";
+    }
+
+    // ---- encounter budget ----
+
+    @Test
+    void anEnemyTooStrongForThePartyIsRefused() {
+        GameEngine e = engine();   // party of 44 max HP: budget 26
+        FakeLLM llm = new FakeLLM().thenTool("spawn_monster", spawnJson("Ogre", 30)).thenText("Nothing comes.");
+        TurnResult r = new AgentOrchestrator(llm, e).takeTurn("I wait");
+        assertTrue(e.getState().getMonsters().isEmpty());
+        assertTrue(r.toolActivity().get(0).contains("too strong"), r.toolActivity().get(0));
+    }
+
+    @Test
+    void theTotalEnemyHealthIsBudgeted() {
+        GameEngine e = engine();
+        FakeLLM llm = new FakeLLM().thenTool("spawn_monster", spawnJson("A", 15)).thenTool("spawn_monster", spawnJson("B", 15))
+                .thenText("A and a second foe.");
+        TurnResult r = new AgentOrchestrator(llm, e).takeTurn("I wait");
+        assertEquals(1, e.getState().getMonsters().size());
+        assertTrue(r.toolActivity().get(1).contains("too strong"), r.toolActivity().get(1));
+    }
+
+    @Test
+    void atMostTwoEnemiesAppearPerTurnAndTheHeadCountIsLimited() {
+        GameEngine e = engine();
+        FakeLLM llm = new FakeLLM().thenTool("spawn_monster", spawnJson("A", 5)).thenTool("spawn_monster", spawnJson("B", 5))
+                .thenTool("spawn_monster", spawnJson("C", 5)).thenText("Three foes?");
+        TurnResult r = new AgentOrchestrator(llm, e).takeTurn("I wait");
+        assertEquals(2, e.getState().getMonsters().size());
+        assertTrue(r.toolActivity().get(2).contains("At most 2 enemies"), r.toolActivity().get(2));
+        FakeLLM next = new FakeLLM().thenTool("spawn_monster", spawnJson("C", 5)).thenTool("spawn_monster", spawnJson("D", 5))
+                .thenText("More.");
+        TurnResult r2 = new AgentOrchestrator(next, e).takeTurn("I wait");
+        assertEquals(3, e.getState().getMonsters().size());         // 2 heroes + 1 = 3 at once
+        assertTrue(r2.toolActivity().get(1).contains("Too many enemies"), r2.toolActivity().get(1));
+    }
+
+    @Test
+    void theBossIsExemptFromTheBudgetButItsHealthIsCapped() {
+        Party solo = new Party();
+        solo.addCharacter(wizard);
+        GameEngine e = new GameEngine(new GameState(solo), new RuleEngine(new FixedDice()));
+        e.setScenario(new Scenario("Lighthouse", "d", "Defeat the Warden.", gamemaster.game.ObjectiveType.DEFEAT_TARGET, "Warden"));
+        FakeLLM llm = new FakeLLM().thenTool("spawn_monster", spawnJson("Warden", 30)).thenText("It rises.");
+        TurnResult r = new AgentOrchestrator(llm, e).takeTurn("I wait");
+        assertEquals(20, e.getState().getMonsters().get(0).getMaxHealth());
+        assertTrue(r.toolActivity().get(0).contains("lowered to 20"), r.toolActivity().get(0));
+    }
+
+    @Test
+    void theModelIsToldTheBudget() {
+        GameEngine e = engine();
+        FakeLLM llm = new FakeLLM("Quiet.");
+        new AgentOrchestrator(llm, e).takeTurn("I look");
+        String prompt = llm.calls.get(0).get(1).content();
+        assertTrue(prompt.contains("Enemy budget: at most 3 more enemies (26 total health left"), prompt);
+        assertTrue(prompt.contains("Healing Light"), prompt);
+    }
+
+    // ---- fail forward ----
+
+    @Test
+    void aFailedCheckTellsTheModelToMoveTheStoryOn() {
+        GameEngine e = engine(2);
+        FakeLLM llm = new FakeLLM().thenTool("roll_check", CHECK).thenText("The door holds.");
+        TurnResult r = new AgentOrchestrator(llm, e).takeTurn("I push the door");
+        assertTrue(r.toolActivity().get(0).contains("fail forward"), r.toolActivity().get(0));
+    }
+
+    @Test
+    void twoFailuresInARowMakeTheNextCheckEasier() {
+        GameEngine e = engine(2, 2, 11);   // 11 + STR mod 2 = 13: fails vs 15 but succeeds vs 12
+        String hard = "{\"character\":\"Brenna\",\"stat\":\"STRENGTH\",\"difficulty\":15}";
+        FakeLLM llm = new FakeLLM().thenTool("roll_check", hard).thenTool("roll_check", hard).thenTool("roll_check", hard)
+                .thenText("At last.");
+        TurnResult r = new AgentOrchestrator(llm, e).takeTurn("I keep pushing");
+        assertTrue(r.toolActivity().get(2).contains("lowered to 12"), r.toolActivity().get(2));
+        assertTrue(r.toolActivity().get(2).contains("success"), r.toolActivity().get(2));
+    }
+
+    @Test
+    void threeFailedChecksPushAChallengeActThrough() {
+        GameEngine e = engine(2, 2, 2);
+        e.setScenario(new Scenario("Grove", "d", "Defeat the Wisp.", gamemaster.game.ObjectiveType.DEFEAT_TARGET, "Wisp",
+                List.of(new gamemaster.game.Milestone("The Clue", "A map.", gamemaster.game.MilestoneKind.CHALLENGE))));
+        FakeLLM llm = new FakeLLM().thenTool("roll_check", CHECK).thenTool("roll_check", CHECK).thenTool("roll_check", CHECK)
+                .thenText("Bruised, they find the way.");
+        new AgentOrchestrator(llm, e).takeTurn("I try the lock");
+        assertTrue(e.getState().inFinale());
+        assertTrue(e.getState().getLog().stream().anyMatch(l -> l.contains("pushes through")));
+    }
+
+    // ---- noise after the game ends ----
+
+    @Test
+    void toolCallsAfterTheGameEndedAreIgnoredAndNotShown() {
+        GameEngine e = engine(19, 8);
+        e.setScenario(new Scenario("Grove", "d", "Defeat the Wisp.", gamemaster.game.ObjectiveType.DEFEAT_TARGET, "Wisp"));
+        e.addMonster(new gamemaster.model.Monster("Wisp", 5, 10, gamemaster.model.Weapon.DAGGER));
+        FakeLLM llm = new FakeLLM().thenTool("attack", "{\"attacker\":\"Brenna\",\"target\":\"Wisp\"}")
+                .thenTool("end_story", "{\"ending\":\"x\",\"objective_achieved\":true}")
+                .thenText("The grove sighs.");
+        TurnResult r = new AgentOrchestrator(llm, e).takeTurn("I strike");
+        assertTrue(r.gameOver());
+        assertEquals(1, r.toolActivity().size());
+    }
+
+    // ---- Healing Light through the AI ----
+
+    @Test
+    void aWizardCanHealThePartyThroughTheTool() {
+        GameEngine e = engine(4);      // d6 = 4, WIS 14 -> +2, heals 6
+        fighter.applyDamage(10);
+        wizard.applyDamage(3);
+        FakeLLM llm = new FakeLLM().thenTool("heal_party", "{\"caster\":\"Mira\"}").thenText("Warm light.");
+        TurnResult r = new AgentOrchestrator(llm, e).takeTurn("Mira heals us");
+        assertEquals(20, fighter.getHealth());   // 14 + 6
+        assertEquals(20, wizard.getHealth());    // 17 + 6 capped at 20
+        assertTrue(r.toolActivity().get(0).contains("Healing Light"), r.toolActivity().get(0));
+        assertEquals(1, e.getState().healsLeft());
     }
 }

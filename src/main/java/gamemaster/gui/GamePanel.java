@@ -163,7 +163,9 @@ final class GamePanel extends BackdropPanel implements GameView {
         title.setText(m.title().isEmpty() ? " " : m.title());
         phase.setPhase(m.phase());
         turnLabel.setText(m.objective().isEmpty() ? " " : "TURN " + Math.min(m.turn(), m.turnLimit()) + " / " + m.turnLimit());
-        objective.setText(m.objective().isEmpty() ? " " : WrappedText.html("Objective: " + m.objective(), 780));
+        String act = game.getState().progressText();
+        objective.setText(m.objective().isEmpty() ? " " : WrappedText.html("Objective: " + m.objective()
+                + (act.isEmpty() ? "" : "   |   " + act), 780));
         over = m.over();
         detectReactions(m);
         sidebar.removeAll();

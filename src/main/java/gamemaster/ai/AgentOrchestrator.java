@@ -35,6 +35,14 @@ public class AgentOrchestrator {
               Use only the numbers and outcomes the tools report.
             - During combat, resolve the player's action first, then make each living enemy attack once
               with the attack tool, then narrate the round.
+            - If a roll_check fails, do not stall: the story moves anyway with a cost, a complication or a
+              partial clue, and the heroes get a different route. Never ask the player to repeat the same attempt.
+            - The game limits enemy numbers and total health (shown in the game state); spawn only what it
+              allows. A wizard can heal the whole party with heal_party (limited uses); never invent healing.
+            - Status effects are applied by the game: Wizard Fire Bolt burns, Wizard Frost Ray chills and Rogue Sneak
+              Attack weakens, on a hit. Do not narrate an effect the tool did not report. An enemy may add an
+              effect to its attack by passing effect (burn, chill or weaken); use it sparingly, for a fitting
+              enemy such as a fire spirit or a frost wraith, and never twice in one turn for the same enemy.
             - Use spawn_monster to introduce a new enemy and end_story only when the story is truly over.
             - If a tool reports an Error, read it and fix your request, or narrate around it.
             - Only heroes and enemies listed in the game state exist. Use their exact names only,
@@ -45,13 +53,16 @@ public class AgentOrchestrator {
               move named exactly as the player asked. The game reports that the hero tried and failed,
               and you then narrate the failed attempt.
             - The game state shows one fixed OBJECTIVE and the turn number. That objective is the only
-              goal of the adventure: never add new goals, quests or mysteries, and do not stretch the
-              story. If the game state says the ENGINE decides the objective, the game ends the story by
+              goal of the adventure: never add new goals or quests, and do not stretch the story. If the game state says the ENGINE decides the objective, the game ends the story by
               itself the moment it is met (do not call end_story with objective_achieved true yourself;
               the game will refuse it) and you only narrate the ending in your reply. Otherwise, when the
               heroes achieve it, call end_story with objective_achieved true and narrate the ending. On the
               final turn the game ends the story if you do not. Keep each scene short and directed at the
               objective.
+            - If the game state lists STORY ACTS, follow the current act: stage the event it describes, do not
+              skip ahead, and do not mention act numbers to the player. Build rising action: each scene adds a
+              new clue, reveal, complication or higher stake, and the final act is the climax. Complications
+              serve the objective; they are not new goals.
             - Critical hits and fumbles are decided by the dice; report them as the tool states them.
             - When you have what you need, reply with two to four sentences of narration for the player
               and, if the story is still going, end with what the heroes can do next. Do not use tools
@@ -100,6 +111,10 @@ public class AgentOrchestrator {
     }
 
     private TurnResult runTurn(String playerInput) {
+        List<String> activity = new ArrayList<>();
+        for (String line : engine.tickStatuses()) {
+            activity.add("status: " + line);
+        }
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(ChatMessage.system(SYSTEM_PROMPT));
         String remembered = memory.asPromptText();
@@ -107,7 +122,6 @@ public class AgentOrchestrator {
                 + "CURRENT GAME STATE\n" + StateDescriber.describe(engine.getState())
                 + "\nPLAYER ACTION: " + playerInput.trim()));
 
-        List<String> activity = new ArrayList<>();
         int toolRuns = 0;
         String narration = null;
 
@@ -120,18 +134,23 @@ public class AgentOrchestrator {
             messages.add(ChatMessage.assistantToolCalls(response.content(), response.toolCalls()));
             for (ToolCall call : response.toolCalls()) {
                 String result;
-                if (toolRuns >= MAX_TOOL_CALLS) {
+                if (engine.checkEndCondition()) {
+                    result = "The game has ended. Do not use more tools; write the closing narration.";
+                } else if (toolRuns >= MAX_TOOL_CALLS) {
                     result = "Error: too many actions this turn. Narrate what has happened so far.";
                 } else {
                     toolRuns++;
                     boolean wasOver = engine.checkEndCondition();
                     result = tools.execute(call);
-                    activity.add(call.name() + ": " + result);
+                    if (!(result.startsWith("Error:") && result.contains("is not allowed during the"))) {
+                        activity.add(call.name() + ": " + result);     // a move refused only because the phase changed is not shown
+                    }
                     if (!wasOver && engine.getState().isConcluded()) {
                         result += " [GAME: the story has just ended"
                                 + (engine.getState().isObjectiveAchieved() ? " as a victory" : "")
-                                + ". Reply with a short closing scene (two to four sentences) that wraps up the "
-                                + "adventure. Do not use more tools.]";
+                                + ". Reply with a short closing scene (two to four sentences) that resolves "
+                                + "the story: say what the outcome changes for the place and for the heroes. "
+                                + "Do not use more tools.]";
                     }
                 }
                 messages.add(ChatMessage.toolResult(call.id(), result));

@@ -26,6 +26,25 @@ class PixelUiTest {
     }
 
     @Test
+    void theRulesScreenHeadingsCanBeDrawnInThePixelFont() {
+        for (gamemaster.app.RulesText.Section sec : gamemaster.app.RulesText.sections()) {
+            for (char c : sec.title().toCharArray()) {
+                assertTrue(PixelFont.has(c), "no glyph for '" + c + "' in " + sec.title());
+            }
+        }
+        for (char c : "RULES".toCharArray()) {
+            assertTrue(PixelFont.has(c));
+        }
+    }
+
+    @Test
+    void healingLightIsPlannedAsAPartyCastNotAnAttack() {
+        var picks = java.util.List.of(new BattlePlan.Pick("Mira", BattlePlan.HEAL, "the party"));
+        assertEquals("Mira: Healing Light on the party", BattlePlan.display(picks));
+        assertTrue(BattlePlan.instruction(picks).contains("heal_party"));
+    }
+
+    @Test
     void aPixelButtonIsAsWideAsItsLettering() {
         PixelButton b = new PixelButton("BEGIN THE ADVENTURE", true);
         assertEquals(PixelFont.width("BEGIN THE ADVENTURE", 2) + 40, b.getPreferredSize().width);

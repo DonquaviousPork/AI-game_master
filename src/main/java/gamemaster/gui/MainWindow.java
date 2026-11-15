@@ -73,6 +73,13 @@ final class MainWindow extends JFrame {
             @Override public void menuCanceled(javax.swing.event.MenuEvent e) { }
         });
         bar.add(settings);
+        JMenu help = new JMenu("Help");
+        help.setMnemonic(KeyEvent.VK_H);
+        javax.swing.JMenuItem rules = new javax.swing.JMenuItem("Rules...");
+        rules.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0));
+        rules.addActionListener(e -> new RulesDialog(this).open(this));
+        help.add(rules);
+        bar.add(help);
         return bar;
     }
 

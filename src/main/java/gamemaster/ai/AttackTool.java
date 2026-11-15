@@ -3,6 +3,7 @@ package gamemaster.ai;
 import com.google.gson.JsonObject;
 import gamemaster.game.AttackAction;
 import gamemaster.game.GameEngine;
+import gamemaster.game.StatusKind;
 import gamemaster.llm.ToolSpec;
 import gamemaster.model.Combatant;
 import java.util.Objects;
@@ -26,6 +27,8 @@ public class AttackTool implements Tool {
                         .string("attacker", "Exact name of the attacking hero or monster (the name only, no class)", true)
                         .string("target", "Exact name of the opponent being attacked (the name only)", true)
                         .string("attack", "For a hero: one of that hero's listed attacks. Leave out for a monster.", false)
+                        .string("effect", "Monsters only, optional: burn, chill or weaken, put on the hero if the attack hits "
+                                + "(one effect per monster per turn). Heroes never set this; the game applies their effects.", false)
                         .build());
     }
 
@@ -43,8 +46,30 @@ public class AttackTool implements Tool {
         if (failed != null) {
             return failed;      // the hero tried, could not, and the turn is spent; nothing in the game changes
         }
-        String result = engine.resolveAction(
-                new AttackAction(attacker, Lookup.weaponOf(attacker, attackName), target)).summary();
+        var weapon = Lookup.weaponOf(attacker, attackName);
+        StatusKind effect = null;
+        boolean claimed = false;
+        if (Lookup.isPlayerSide(state, attacker)) {
+            if (attacker instanceof gamemaster.model.Character hero) {
+                effect = StatusKind.forHeroAttack(hero.getCharacterClass().name(), weapon.name()).orElse(null);
+            }
+        } else if (args.has("effect") && !args.get("effect").isJsonNull() && !args.get("effect").getAsString().isBlank()) {
+            effect = StatusKind.parse(args.get("effect").getAsString()).orElseThrow(
+                    () -> new IllegalArgumentException("effect must be burn, chill or weaken."));
+            claimed = state.claimEffect(attacker.getName());
+            if (!claimed) {
+                effect = null;      // this monster already used an effect this turn; the attack still happens
+            }
+        }
+        String result;
+        try {
+            result = engine.resolveAction(new AttackAction(attacker, weapon, target, effect)).summary();
+        } catch (RuntimeException e) {
+            if (claimed) {
+                state.releaseEffect(attacker.getName());
+            }
+            throw e;
+        }
         String hp = target.isAlive()
                 ? " " + target.getName() + " now has " + target.getHealth() + "/" + target.getMaxHealth() + " HP."
                 : "";

@@ -5,6 +5,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
+import gamemaster.game.Milestone;
+import gamemaster.game.MilestoneKind;
 import gamemaster.game.ObjectiveType;
 import gamemaster.game.Scenario;
 import gamemaster.game.StoryEvent;
@@ -28,6 +30,8 @@ public class ScenarioGenerator {
     /** Used only when the model leaves the objective out, so every adventure still has a goal. */
     static final String DEFAULT_OBJECTIVE = "Resolve the situation you find yourselves in before time runs out.";
     static final int MAX_MONSTERS = 3;
+    /** Acts before the showdown; the showdown itself is not counted. */
+    static final int MAX_ACTS = 3;
     static final int MIN_HEALTH = JsonFields.MIN_HEALTH, MAX_HEALTH = JsonFields.MAX_HEALTH;
     static final int MIN_AC = JsonFields.MIN_AC, MAX_AC = JsonFields.MAX_AC;
 
@@ -36,6 +40,8 @@ public class ScenarioGenerator {
             Reply with ONLY one JSON object and no other text, in exactly this shape:
             {"title": "...", "description": "...", "objective": "...", "objective_type": "defeat_target",
              "objective_target": "...", "opening_event": "...",
+             "milestones": [{"title": "...", "description": "...", "kind": "challenge"},
+                            {"title": "...", "description": "...", "kind": "combat"}],
              "monsters": [{"name": "...", "health": 8, "armor_class": 12, "weapon": "dagger"}]}
             Rules:
             - title: a short name for the adventure.
@@ -43,11 +49,20 @@ public class ScenarioGenerator {
             - objective: ONE concrete goal the heroes can achieve in about 15 short turns, written as one
               sentence the player can read (for example: Rescue the missing children and drive the goblins out
               of the tree house). It must be a single goal, not a list, and must not need more than a few scenes.
-            - objective_type: "defeat_target" (the objective is to defeat one named enemy), "survive" (hold
-              out until time runs out) or "narrative" (anything else, such as finding or rescuing something).
-              Prefer defeat_target when the goal ends in a showdown, and write the objective to match.
+            - objective_type: "defeat_target" (the objective is to defeat one named enemy) or "survive" (hold
+              out until time runs out). Use defeat_target for almost everything: a mystery, a rescue or a
+              heist still ends with the heroes facing and defeating a named villain or monster (for example:
+              "Uncover the cult in the cellar and defeat its leader, Mother Vex"). Never use any other type.
             - objective_target: for defeat_target only, the name of that enemy (a boss); otherwise an empty
               string. This enemy does NOT appear in the opening: it comes later in the story.
+            - milestones: when objective_type is defeat_target, write exactly 2 acts that come BEFORE the
+              showdown, so the story rises like a real adventure instead of walking in a straight line:
+              act 1 (kind "challenge") is the hook and an investigation: the heroes find the first real clue
+              and learn what is at stake; act 2 (kind "combat") is a complication that raises the stakes: a
+              reveal or a betrayal, and a fight against a minor foe (not the boss). Each description is one
+              sentence naming the concrete event or twist of that act (who or what shows up, what is
+              revealed), never a vague phrase like "getting closer". The showdown with the boss is the third
+              and final act, after these two. For survive use an empty array [].
             - opening_event: one or two sentences describing the first scene. It is a quiet or mysterious
               scene, not a fight: the heroes arrive, explore, talk or investigate before any combat.
             - monsters: leave this as an empty array []. Enemies are introduced later by the game master, so
@@ -94,13 +109,20 @@ public class ScenarioGenerator {
             String reply = llm.complete(conversation);
             lastReply = reply == null ? "" : reply;
             try {
-                GeneratedScenario parsed = parse(reply);
+                GeneratedScenario parsed = parse(reply, !easy);
                 return easy ? makeEasy(parsed) : parsed;
             } catch (IllegalArgumentException e) {
                 lastProblem = e.getMessage();
                 conversation.add(ChatMessage.assistant(reply));
                 conversation.add(ChatMessage.user("That reply was rejected: " + lastProblem
                         + " Reply again with only the corrected JSON object."));
+            }
+        }
+        if (!easy) {
+            try {
+                return parse(lastReply, false);     // never leave the player with an error over the objective type
+            } catch (IllegalArgumentException ignored) {
+                // fall through to the error below
             }
         }
         throw new LLMException("The AI could not produce a valid scenario: " + lastProblem
@@ -126,12 +148,36 @@ public class ScenarioGenerator {
         Monster weak = new Monster(first.getName(), Math.min(first.getMaxHealth(), EASY_MAX_HEALTH),
                 Math.min(first.getArmorClass(), EASY_MAX_AC), first.getWeapon());
         Scenario scenario = new Scenario(s.scenario().title(), s.scenario().description(),
-                "Defeat the " + first.getName() + ".", ObjectiveType.DEFEAT_TARGET, first.getName());
+                "Defeat the " + first.getName() + ".", ObjectiveType.DEFEAT_TARGET, first.getName(), List.of());
         return new GeneratedScenario(scenario, s.openingEvent(), List.of(weak));
     }
 
-    /** Package-visible so tests can check validation without a model. */
+    /** Package-visible so tests can check validation without a model. Lenient: any objective type is accepted. */
     static GeneratedScenario parse(String reply) {
+        return parse(reply, false);
+    }
+
+    /**
+     * With {@code strict} the scenario must be a showdown the engine can run: a named boss with at least one
+     * act before it, or a survive objective. The error text is sent back to the model to fix its reply.
+     */
+    static GeneratedScenario parse(String reply, boolean strict) {
+        GeneratedScenario s = parseLoose(reply);
+        // A reply that names no objective type at all is left alone; one that names a type must name a usable one.
+        if (strict && extractObject(reply).has("objective_type")) {
+            var sc = s.scenario();
+            boolean showdown = sc.type() == ObjectiveType.DEFEAT_TARGET && !sc.milestones().isEmpty();
+            if (!showdown && sc.type() != ObjectiveType.SURVIVE) {
+                throw new IllegalArgumentException("The objective must be a showdown the game can check. Set "
+                        + "\"objective_type\" to \"defeat_target\", \"objective_target\" to the name of a villain or "
+                        + "monster the heroes must defeat, and write \"milestones\" with 2 acts before that showdown. "
+                        + "Reframe a mystery or rescue as stopping or defeating a named villain.");
+            }
+        }
+        return s;
+    }
+
+    private static GeneratedScenario parseLoose(String reply) {
         JsonObject root = extractObject(reply);
         String objective = root.has("objective") && !root.get("objective").isJsonNull()
                 ? root.get("objective").getAsString().trim() : "";
@@ -177,7 +223,21 @@ public class ScenarioGenerator {
         if (type != ObjectiveType.DEFEAT_TARGET) {
             target = "";
         }
-        Scenario scenario = new Scenario(text(root, "title"), text(root, "description"), objective, type, target);
+        List<Milestone> acts = new ArrayList<>();
+        JsonElement actsElement = root.get("milestones");
+        if (type == ObjectiveType.DEFEAT_TARGET && actsElement != null && actsElement.isJsonArray()) {
+            for (JsonElement el : actsElement.getAsJsonArray()) {
+                if (acts.size() >= MAX_ACTS || !el.isJsonObject()) {
+                    continue;
+                }
+                JsonObject o = el.getAsJsonObject();
+                String title = optional(o, "title");
+                if (!title.isBlank() && title.length() <= 80) {
+                    acts.add(new Milestone(title, optional(o, "description"), MilestoneKind.parse(optional(o, "kind"))));
+                }
+            }
+        }
+        Scenario scenario = new Scenario(text(root, "title"), text(root, "description"), objective, type, target, acts);
         return new GeneratedScenario(scenario, event, monsters);
     }
 

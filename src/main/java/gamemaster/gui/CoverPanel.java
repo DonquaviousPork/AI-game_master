@@ -37,7 +37,7 @@ final class CoverPanel extends JPanel {
     private final java.util.function.BooleanSupplier demoOn;
     private final java.util.function.Consumer<Boolean> demoSet;
 
-    CoverPanel(boolean dark, Runnable onNew, Runnable onLoad, Runnable onSettings, Runnable onQuit,
+    CoverPanel(boolean dark, Runnable onNew, Runnable onLoad, Runnable onSettings, Runnable onRules, Runnable onQuit,
                java.util.function.BooleanSupplier demoOn, java.util.function.Consumer<Boolean> demoSet) {
         super(new GridBagLayout());
         this.dark = dark;
@@ -58,6 +58,7 @@ final class CoverPanel extends JPanel {
         addEntry(menu, "NEW GAME", onNew);
         addEntry(menu, "LOAD GAME", onLoad);
         addEntry(menu, "SETTINGS", onSettings);
+        addEntry(menu, "RULES", onRules);
         addEntry(menu, "QUIT", onQuit);
 
         getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0), "down");
@@ -162,7 +163,7 @@ final class CoverPanel extends JPanel {
 
         @Override
         public Dimension getPreferredSize() {
-            return new Dimension(4 * 196 + 3 * 10 + 24, 44 + 20);
+            return new Dimension(5 * 170 + 4 * 10 + 24, 44 + 20);
         }
 
         @Override
@@ -193,7 +194,7 @@ final class CoverPanel extends JPanel {
             this.text = text;
             this.run = run;
             this.index = index;
-            setPreferredSize(new Dimension(196, 44));
+            setPreferredSize(new Dimension(170, 44));
             setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
             addMouseListener(new MouseAdapter() {
                 @Override public void mouseEntered(MouseEvent e) { selected = Entry.this.index; CoverPanel.this.repaint(); }

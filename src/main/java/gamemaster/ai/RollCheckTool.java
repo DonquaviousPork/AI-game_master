@@ -46,6 +46,18 @@ public class RollCheckTool implements Tool {
         int difficulty = args.has("difficulty")
                 ? JsonFields.number(args, "difficulty", MIN_DIFFICULTY, MAX_DIFFICULTY)
                 : 12;
-        return engine.resolveAction(new AbilityCheckAction(who, stat, difficulty)).summary();
+        String easier = "";
+        var state = engine.getState();
+        if (state.getCheckFailStreak() >= gamemaster.game.GameState.FAILS_BEFORE_EASIER && difficulty > MIN_DIFFICULTY) {
+            difficulty = Math.max(MIN_DIFFICULTY, difficulty - 3);
+            easier = " (the party has learned from its failures: the difficulty was lowered to " + difficulty + ")";
+        }
+        var result = engine.resolveAction(new AbilityCheckAction(who, stat, difficulty));
+        String text = result.summary() + easier;
+        if (!result.success()) {
+            text += " [GAME: fail forward. The attempt failed, but the story must still move: narrate a cost, a "
+                    + "complication or a partial clue, and offer a different route. Do not repeat the same attempt.]";
+        }
+        return text;
     }
 }

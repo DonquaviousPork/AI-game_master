@@ -131,6 +131,7 @@ public class CliSession {
                 out.println("The next adventure will last " + game.getTurnLimit() + " turns.");
             }
             case "usage" -> out.println(game.usageSummary() + ".");
+            case "rules" -> out.println(gamemaster.app.RulesText.plain(78));
             case "new" -> {
                 game.returnToMenu();
                 out.println("Adventure abandoned (use /save first to keep one). Add characters with /add, then /start.");
@@ -178,6 +179,9 @@ public class CliSession {
         out.println();
         out.println("OBJECTIVE: " + s.scenario().objective());
         out.println("You have " + game.getState().getTurnLimit() + " turns. Reach the objective before they run out to win.");
+        if (!game.getState().progressText().isEmpty()) {
+            out.println("The story has " + (s.scenario().milestones().size() + 1) + " acts. " + game.getState().progressText() + ".");
+        }
         out.println();
         out.println(wrap(s.openingEvent().description()));
         for (Monster m : s.monsters()) {
@@ -206,14 +210,24 @@ public class CliSession {
             if (!s.getScenario().objective().isBlank()) {
                 out.println("Objective: " + s.getScenario().objective());
             }
+            if (!s.progressText().isEmpty()) {
+                out.println("Progress: " + s.progressText());
+            }
         }
         if (s.getCurrentEvent() != null) {
             out.println(wrap(s.getCurrentEvent().description()));
         }
         printParty();
         for (Monster m : s.getMonsters()) {
-            out.println("  Enemy: " + m + (m.isAlive() ? "" : " [defeated]"));
+            out.println("  Enemy: " + m + (m.isAlive() ? "" : " [defeated]") + effectsText(s, m.getName()));
         }
+    }
+
+    private static String effectsText(GameState s, String name) {
+        StringBuilder sb = new StringBuilder();
+        s.statusesOf(name).forEach((k, t) -> sb.append(sb.length() == 0 ? "   effects: " : ", ")
+                .append(k.label()).append(' ').append(t));
+        return sb.toString();
     }
 
     private void printParty() {
@@ -222,7 +236,7 @@ public class CliSession {
             return;
         }
         for (Character c : game.getParty()) {
-            out.println("  " + c + (c.isAlive() ? "" : " [defeated]"));
+            out.println("  " + c + (c.isAlive() ? "" : " [defeated]") + effectsText(game.getState(), c.getName()));
             if (c.isAlive()) {
                 out.println("      attacks: " + c.getCharacterClass().attacks().stream()
                         .map(w -> w.name() + " d" + w.damageSides() + " " + (w.attackBonus() >= 0 ? "+" : "") + w.attackBonus())
@@ -249,7 +263,9 @@ public class CliSession {
 
     private String statusLine() {
         StringBuilder sb = new StringBuilder("[Turn " + Math.min(game.getState().getTurnsTaken(), game.getState().getTurnLimit())
-                + "/" + game.getState().getTurnLimit() + "] Party: ");
+                + "/" + game.getState().getTurnLimit() + "]"
+                + (game.getState().progressText().isEmpty() ? "" : " [" + game.getState().progressText() + "]")
+                + " Party: ");
         sb.append(String.join(" | ", game.getParty().stream()
                 .map(c -> c.getName() + " " + c.getHealth() + "/" + c.getMaxHealth()).toList()));
         var monsters = game.getState().getMonsters().stream().filter(Monster::isAlive).toList();
@@ -283,6 +299,7 @@ public class CliSession {
         out.println("  /turns <n>  set the turn limit for the next adventure (a short one is handy for demos)");
         out.println("  /usage    model calls and tokens used so far");
         out.println("  /new      abandon this adventure and go back to setup");
+        out.println("  /rules   how the game works");
         out.println("  /help, /quit");
         out.println("While playing, type what your party does, for example: I attack the wolf.");
     }

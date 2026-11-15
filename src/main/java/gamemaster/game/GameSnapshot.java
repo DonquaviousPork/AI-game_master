@@ -31,7 +31,27 @@ public record GameSnapshot(
         int turnsTaken,
         boolean objectiveAchieved,
         String objectiveType,
-        String objectiveTarget) {
+        String objectiveTarget,
+        List<MilestoneData> milestones,
+        int milestoneIndex,
+        int beatSuccesses,
+        int beatKills,
+        int beatTurns,
+        int beatFailures,
+        int healsUsed,
+        List<String> statuses) {
+
+    public GameSnapshot(int version, String savedAt, String scenarioTitle, String scenarioDescription,
+                        String currentEvent, boolean concluded, List<CharacterData> party,
+                        List<MonsterData> monsters, List<String> log, String memorySummary,
+                        List<String> memoryRecent, String objective, int turnsTaken, boolean objectiveAchieved,
+                        String objectiveType, String objectiveTarget, List<MilestoneData> milestones,
+                        int milestoneIndex, int beatSuccesses, int beatKills, int beatTurns, int beatFailures,
+                        int healsUsed) {
+        this(version, savedAt, scenarioTitle, scenarioDescription, currentEvent, concluded, party, monsters, log,
+                memorySummary, memoryRecent, objective, turnsTaken, objectiveAchieved, objectiveType, objectiveTarget,
+                milestones, milestoneIndex, beatSuccesses, beatKills, beatTurns, beatFailures, healsUsed, List.of());
+    }
 
     /** Saves written before objectives and turn counting have no such fields; they load with these as defaults. */
     public static final int CURRENT_VERSION = 1;
@@ -52,7 +72,25 @@ public record GameSnapshot(
                 log, memorySummary, memoryRecent, objective, turnsTaken, objectiveAchieved, "NARRATIVE", "");
     }
 
+    public GameSnapshot(int version, String savedAt, String scenarioTitle, String scenarioDescription,
+                        String currentEvent, boolean concluded, List<CharacterData> party,
+                        List<MonsterData> monsters, List<String> log, String memorySummary,
+                        List<String> memoryRecent, String objective, int turnsTaken, boolean objectiveAchieved,
+                        String objectiveType, String objectiveTarget) {
+        this(version, savedAt, scenarioTitle, scenarioDescription, currentEvent, concluded, party, monsters,
+                log, memorySummary, memoryRecent, objective, turnsTaken, objectiveAchieved, objectiveType,
+                objectiveTarget, List.of(), 0, 0, 0, 0, 0, 0);
+    }
+
     public GameSnapshot {
+        milestones = milestones == null ? List.of() : List.copyOf(milestones);
+        milestoneIndex = Math.max(0, milestoneIndex);
+        beatSuccesses = Math.max(0, beatSuccesses);
+        beatKills = Math.max(0, beatKills);
+        beatTurns = Math.max(0, beatTurns);
+        beatFailures = Math.max(0, beatFailures);
+        healsUsed = Math.max(0, healsUsed);
+        statuses = statuses == null ? List.of() : List.copyOf(statuses);
         party = party == null ? List.of() : List.copyOf(party);
         monsters = monsters == null ? List.of() : List.copyOf(monsters);
         log = log == null ? List.of() : List.copyOf(log);
@@ -61,6 +99,18 @@ public record GameSnapshot(
         turnsTaken = Math.max(0, turnsTaken);
         objectiveType = objectiveType == null || objectiveType.isBlank() ? "NARRATIVE" : objectiveType;
         objectiveTarget = objectiveTarget == null ? "" : objectiveTarget;
+    }
+
+    /** One act of the story, stored as values. */
+    public record MilestoneData(String title, String description, String kind) {
+
+        static MilestoneData of(Milestone m) {
+            return new MilestoneData(m.title(), m.description(), m.kind().name());
+        }
+
+        Milestone toMilestone() {
+            return new Milestone(title, description, MilestoneKind.parse(kind));
+        }
     }
 
     /** One hero, stored as values. */

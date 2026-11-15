@@ -54,6 +54,7 @@ final class AppPanel extends JPanel {
                         new SettingsDialog(mw, game).open(mw);
                     }
                 },
+                () -> new RulesDialog(SwingUtilities.getWindowAncestor(this)).open(this),
                 () -> {
                     Window w = SwingUtilities.getWindowAncestor(this);
                     if (w != null) {

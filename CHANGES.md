@@ -381,3 +381,42 @@ the git history; this file is the design-level record.
 - `StateDescriber`: while the target has not appeared, the model is told to build the story first and bring it in with `spawn_monster` (exact name) by about the halfway turn.
 - `AgentOrchestrator`: when a tool call makes the engine end the story, the tool result tells the model to write a short closing scene, so the last narration is an ending and not another fight round.
 - Tests: 300 tests (+6), 0 failures.
+
+## Commit 29 - Pixel style for the setup screen and every dialog
+- The setup screen and the objective briefing used a different look from the title screen. They now share it: the title screen's scene, blurred and dimmed and still animated, behind framed panels with pixel lettering (`PixelBackdrop`, `PixelPanel`, `PixelLabel`, `PixelButton`). Dusk mode uses the purple frame and gold highlight; daytime mode uses a deep-green plate with a lime frame, matching the sunny cover.
+- All dialogs now use one pixel-style window (`PixelDialog`, no system title bar, drag to move, Esc to close): Settings, Sound, Custom stats, Save, Load, the two "unsaved progress" warnings, the colour-mode notice and the hero detail pop-up. `PixelDialogs` holds the ready-made input, list, choice and message versions that replace `JOptionPane`.
+- New small controls to match: `PixelCheck`, `PixelSlider` (volume as a row of blocks), `PixelStepper` (plus and minus buttons for the custom stats), a pixel combo box and scroll bar in `PixelUi`. `PixelTheme` holds the colours and follows the current mode.
+- `PixelFont` gained punctuation (, ! ? : / ( ) ' " + % _ <) and a gradient fill.
+- The in-game screen (story, battle menu, cards) is unchanged; it keeps the earlier look.
+- Tests: `PixelUiTest` (every menu label can be drawn in the pixel font, button sizing, colours follow the mode, widgets paint headless, stepper and slider limits). 305 tests, 0 failures.
+
+## Commit 30 - Story acts: rising action, climax and resolution
+- Problem: after commit 28 an adventure was a straight road to one boss. Now the story has acts that the engine tracks and enforces.
+- `game/Milestone`, `MilestoneKind` (new). `Scenario` carries a list of acts. A CHALLENGE act ends when a hero succeeds at an ability check or saving throw (`ActionResult` now says whether a roll succeeded); a COMBAT act ends when the party defeats an enemy. The engine checks after every action (`GameEngine.checkMilestone`) and logs "Act complete: ...".
+- The showdown is the last act: `objectiveMet()` is false until every act before it is finished, and `SpawnMonsterTool` refuses the boss's name before then, so the AI cannot jump to the fight. Minor foes can still be spawned for a combat act.
+- `GameState` keeps the act index and per-act counters (successes, kills, turns); they are saved in `GameSnapshot` (older saves load with no acts).
+- `ScenarioGenerator`: for a defeat-target objective the model writes two acts before the boss (an investigation that reveals what is at stake, then a complication with a minor fight), each with a concrete event or twist; entries are validated (3 acts at most, blank titles skipped, other objective types drop them). Demo mode drops the acts and keeps its quick showdown.
+- `StateDescriber` / system prompt: the model sees every act marked done / current / later, what the current act must contain and how it ends, is told to add something new in every scene (no "you are getting closer"), is warned when an act is overdue (5 turns), and is told when the final act begins so the boss makes a dramatic entrance. After the engine ends the story the model is asked to resolve it: what changed for the place and for the heroes.
+- Display: GUI header shows "Objective: ... | Act 2 of 3: title"; CLI shows the act count at the start, "Progress:" in `/status`, and the act in the status line.
+- Tests: `MilestoneTest`, six orchestrator tests and three generator tests. 324 tests, 0 failures.
+
+## Commit 31 - Encounter budget, fail-forward, boss rule, Healing Light and rules screen
+- Encounter budget (`ai/EncounterBudget`, `SpawnMonsterTool`): living enemies at once are capped at living heroes plus 1 (never more than 4); the total max HP of living ordinary enemies is capped at the larger of 8 and 60% of the party's total max HP; at most 2 spawns per player turn. The boss is exempt from those counts but its health is capped at the party's total max HP (the engine lowers it and says so). `StateDescriber` tells the model the remaining budget every turn.
+- Fail-forward (`RollCheckTool`, `GameState`): a failed check returns a "[GAME: fail forward...]" note so the story moves on instead of repeating the roll. After 2 failed checks in a row the next difficulty is lowered by 3 (minimum 5). A challenge act also ends after 3 failed checks ("pushes through despite setbacks"). The failure counters are saved in `GameSnapshot`.
+- Boss rule (`ScenarioGenerator`): when the reply names an `objective_type` it must be defeat_target with at least one act, or survive; otherwise the model is asked again. After two failed attempts the last reply is parsed leniently.
+- Tool calls made after the game has ended are ignored and not shown (`AgentOrchestrator`).
+- Healing Light: wizards can heal the whole party (d6 plus the wizard's WIS modifier, minimum 1 per hero, fallen heroes are not revived), 2 uses per adventure. New `game/HealAction` (undoable, saved in the snapshot, allowed in Story and Combat), `ai/HealPartyTool` (`heal_party`), and a battle-menu entry "Healing Light (whole party)" for wizards. The existing green heal animation plays.
+- Rules screen: a RULES button on the title menu, Help > Rules (F1) in the menu bar, and `/rules` in the CLI. The GUI version is a scrollable pixel dialog that closes with the button or Esc (`gui/RulesDialog`, text in `app/RulesText`).
+- The model can no longer end a typed-objective story as a failure before the final turn (`EndStoryTool` refuses it); the engine ends it when every hero falls or the turns run out. Found in a test run where the model called end_story on turn 4 with all heroes at full health.
+- Not included: status effects.
+- Tests: `HealActionTest`, `RulesTextTest`, new tests in `AgentOrchestratorTest`, `ScenarioGeneratorTest`, `PixelUiTest`; `ToolRegistryTest` updated for six tools. 352 tests, 0 failures.
+
+## Commit 32 - Status effects and a quieter log
+- Status effects (`game/StatusKind`, `GameState`, `AttackAction`, `GameEngine.tickStatuses`): three effects, each lasting 2 turns. Burn deals 2 damage at the start of each turn, Chill gives -3 to the target's attack rolls, Weaken lowers its armor class by 2. A new hit refreshes an effect; it does not stack. An effect is applied only when the attack hits and the target survives it.
+- Heroes: Wizard Fire Bolt burns and Frost Ray chills (two effects); Rogue Sneak Attack weakens (one); Fighters have none. The engine applies them from the attack used (`StatusKind.forHeroAttack`); the AI cannot add or change them.
+- Enemies: `attack` takes an optional `effect` (burn, chill or weaken) that only monsters may use; each enemy applies at most one per turn (extra requests still attack, without the effect). An unknown effect name is refused.
+- Counting down: at the start of each player turn the engine applies burn damage, lowers every effect by one turn and logs it ("[rules] status: ..."). Burn can defeat an enemy (the fight and any act progress are checked). All effects are cleared when the last enemy falls. Undoing an attack removes the effect that attack applied; the start-of-turn countdown itself is not undone.
+- `RuleEngine.rollAttack` has an overload that takes an attack adjustment and an armor adjustment; the log shows the adjusted armor class.
+- Saved in `GameSnapshot` (`statuses`, older saves load with none). Shown on the hero and enemy cards (e.g. "Burn 2"), in the CLI party and enemy lines, in the model's game state ("effects: burning (2 turns left)"), and in the rules screen (new STATUS EFFECTS section).
+- Quieter log: a move refused only because the phase had already changed (for example a hero's attack queued after the last enemy fell: "ATTACK is not allowed during the Story phase") is no longer added to the visible tool activity. The model still receives the error.
+- Tests: `StatusEffectsTest` (13 tests). 365 tests, 0 failures.

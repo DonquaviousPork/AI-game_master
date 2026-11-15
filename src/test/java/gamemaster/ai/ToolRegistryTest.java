@@ -45,9 +45,9 @@ class ToolRegistryTest {
     // ---- registry ----
 
     @Test
-    void offersFiveToolsWithSchemas() {
+    void offersSixToolsWithSchemas() {
         var specs = ToolRegistry.defaultFor(engine()).specs();
-        assertEquals(java.util.List.of("roll_check", "attack", "saving_throw", "spawn_monster", "end_story"),
+        assertEquals(java.util.List.of("roll_check", "attack", "saving_throw", "spawn_monster", "heal_party", "end_story"),
                 specs.stream().map(s -> s.name()).toList());
         specs.forEach(s -> assertEquals("object", s.parameters().get("type").getAsString()));
     }
@@ -156,14 +156,19 @@ class ToolRegistryTest {
     }
 
     @Test
-    void spawnMonsterCapsLivingEnemiesAndRefusesOutsideTheGame() {
+    void spawnMonsterIsLimitedAndRefusesOutsideTheGame() {
         assertTrue(run(engine(), "spawn_monster", WOLF).startsWith("Error:"));
         GameEngine e = started();
+        run(e, "spawn_monster", WOLF);
+        run(e, "spawn_monster", WOLF);
+        assertTrue(run(e, "spawn_monster", WOLF).contains("At most 2 enemies"));
+        assertEquals(2, e.getState().getMonsters().size());
+        e.getState().startTurn();                      // a new turn: more may come, until the head-count or budget stops it
         for (int i = 0; i < 4; i++) {
             run(e, "spawn_monster", WOLF);
         }
-        assertTrue(run(e, "spawn_monster", WOLF).contains("already 4"));
-        assertEquals(4, e.getState().getMonsters().size());
+        assertTrue(e.getState().getMonsters().size() <= 4);
+        assertTrue(run(e, "spawn_monster", WOLF).startsWith("Error:"));
     }
 
     // ---- end_story ----

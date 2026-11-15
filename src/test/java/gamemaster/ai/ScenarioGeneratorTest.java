@@ -230,4 +230,66 @@ class ScenarioGeneratorTest {
         assertEquals("Wisp", s.monsters().get(0).getName());
         assertTrue(s.monsters().get(0).getMaxHealth() <= ScenarioGenerator.EASY_MAX_HEALTH);
     }
+
+    private static String withActs(String type, String acts) {
+        return "{\"title\":\"T\",\"description\":\"D\",\"objective\":\"Defeat the Wisp.\",\"objective_type\":\""
+                + type + "\",\"objective_target\":\"Wisp\",\"opening_event\":\"E\",\"monsters\":[],\"milestones\":" + acts + "}";
+    }
+
+    @Test
+    void actsAreKeptForATargetObjective() {
+        GeneratedScenario s = ScenarioGenerator.parse(withActs("defeat_target",
+                "[{\"title\":\"The Clue\",\"description\":\"A map.\",\"kind\":\"challenge\"},"
+                        + "{\"title\":\"The Ambush\",\"description\":\"Cultists.\",\"kind\":\"combat\"}]"));
+        assertEquals(2, s.scenario().milestones().size());
+        assertEquals(gamemaster.game.MilestoneKind.COMBAT, s.scenario().milestones().get(1).kind());
+    }
+
+    @Test
+    void actsAreDroppedForOtherObjectivesAndBadEntriesAreSkipped() {
+        assertTrue(ScenarioGenerator.parse(withActs("survive", "[{\"title\":\"A\",\"kind\":\"challenge\"}]"))
+                .scenario().milestones().isEmpty());
+        GeneratedScenario s = ScenarioGenerator.parse(withActs("defeat_target",
+                "[{\"title\":\"\",\"kind\":\"combat\"}, 5, {\"title\":\"Ok\",\"kind\":\"nonsense\"}]"));
+        assertEquals(1, s.scenario().milestones().size());
+        assertEquals(gamemaster.game.MilestoneKind.CHALLENGE, s.scenario().milestones().get(0).kind());
+    }
+
+    @Test
+    void atMostThreeActsAreKeptAndDemoModeDropsThem() {
+        String act = "{\"title\":\"A\",\"kind\":\"challenge\"}";
+        GeneratedScenario s = ScenarioGenerator.parse(withActs("defeat_target", "[" + act + "," + act + "," + act + "," + act + "]"));
+        assertEquals(3, s.scenario().milestones().size());
+        assertTrue(ScenarioGenerator.makeEasy(s).scenario().milestones().isEmpty());
+    }
+
+    private static String showdown() {
+        return "{\"title\":\"T\",\"description\":\"D\",\"objective\":\"Defeat Vex.\",\"objective_type\":\"defeat_target\","
+                + "\"objective_target\":\"Vex\",\"opening_event\":\"E\",\"monsters\":[],"
+                + "\"milestones\":[{\"title\":\"Clue\",\"description\":\"d\",\"kind\":\"challenge\"}]}";
+    }
+
+    @Test
+    void aMysteryObjectiveIsSentBackToBeReframedAsAShowdown() {
+        FakeLLM llm = new FakeLLM(typed("narrative", ""), showdown());
+        GeneratedScenario s = new ScenarioGenerator(llm).generate("mystery");
+        assertEquals(gamemaster.game.ObjectiveType.DEFEAT_TARGET, s.scenario().type());
+        assertEquals("Vex", s.scenario().target());
+        assertEquals(2, llm.calls.size());
+        assertTrue(llm.calls.get(1).get(llm.calls.get(1).size() - 1).content().contains("defeat_target"));
+    }
+
+    @Test
+    void ifTheModelNeverComplliesThePlayerStillGetsTheLastScenario() {
+        FakeLLM llm = new FakeLLM(typed("narrative", ""), typed("narrative", ""));
+        GeneratedScenario s = new ScenarioGenerator(llm).generate("x");
+        assertEquals(gamemaster.game.ObjectiveType.NARRATIVE, s.scenario().type());
+    }
+
+    @Test
+    void strictParsingNeedsActsForATargetAndAcceptsSurvive() {
+        assertThrows(IllegalArgumentException.class, () -> ScenarioGenerator.parse(typed("defeat_target", "Wisp"), true));
+        assertEquals(gamemaster.game.ObjectiveType.SURVIVE, ScenarioGenerator.parse(typed("survive", ""), true).scenario().type());
+        assertEquals(1, ScenarioGenerator.parse(showdown(), true).scenario().milestones().size());
+    }
 }

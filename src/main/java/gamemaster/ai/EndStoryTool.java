@@ -19,7 +19,7 @@ public class EndStoryTool implements Tool {
     public ToolSpec spec() {
         return new ToolSpec("end_story",
                 "End the adventure. Call it as soon as the heroes achieve the objective shown in the game state, "
-                        + "or on the final turn. Do not use it while enemies remain unless the story truly ends.",
+                        + "or on the final turn. It is refused before the final turn if the objective is not met.",
                 Schema.object()
                         .string("ending", "One or two sentences describing how the story ends", true)
                         .bool("objective_achieved", "true only if the heroes actually achieved the objective", true)
@@ -39,6 +39,11 @@ public class EndStoryTool implements Tool {
         if (achieved && scenario != null && scenario.type().engineDecides() && !engine.objectiveMet()) {
             throw new IllegalStateException("The game engine decides whether this objective is met, and it is not met yet. "
                     + "Keep playing toward it; the game ends the story by itself when it is.");
+        }
+        if (!achieved && scenario != null && scenario.type().engineDecides()
+                && engine.getState().getTurnsTaken() < engine.getState().getTurnLimit()) {
+            throw new IllegalStateException("The story cannot end in failure yet: the heroes are still alive and turns remain. "
+                    + "Keep playing toward the objective; the game ends the story itself if every hero falls or the turns run out.");
         }
         engine.getState().addLog("The story ends: " + ending);
         engine.concludeStory(achieved);

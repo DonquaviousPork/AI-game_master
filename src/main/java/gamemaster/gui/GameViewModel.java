@@ -11,7 +11,7 @@ import java.util.List;
  */
 record GameViewModel(String title, String phase, String scene, List<Card> heroes, List<Card> enemies, boolean over,
                      String objective, int turn, int turnLimit, String ending, boolean victory,
-                     List<String> log) {
+                     List<String> log, int healsLeft) {
 
     /** One hero or enemy as shown on a card. */
     record Card(String name, String detail, int health, int maxHealth, boolean alive, String look, String tooltip,
@@ -21,8 +21,8 @@ record GameViewModel(String title, String phase, String scene, List<Card> heroes
     record AttackInfo(String name, int damageSides, int statModifier, int attackBonus) {}
 
     static GameViewModel from(GameState s) {
-        List<Card> heroes = s.getParty().getCharacters().stream().map(GameViewModel::hero).toList();
-        List<Card> enemies = s.getMonsters().stream().map(GameViewModel::enemy).toList();
+        List<Card> heroes = s.getParty().getCharacters().stream().map(c -> hero(s, c)).toList();
+        List<Card> enemies = s.getMonsters().stream().map(m -> enemy(s, m)).toList();
         boolean over = s.isConcluded() || s.getParty().isDefeated();
         return new GameViewModel(
                 s.getScenario() == null ? "" : s.getScenario().title(),
@@ -31,7 +31,14 @@ record GameViewModel(String title, String phase, String scene, List<Card> heroes
                 heroes, enemies, over,
                 s.getScenario() == null ? "" : s.getScenario().objective(),
                 s.getTurnsTaken(), s.getTurnLimit(), endingText(s, over), over && s.isObjectiveAchieved(),
-                List.copyOf(s.getLog()));
+                List.copyOf(s.getLog()), s.healsLeft());
+    }
+
+    /** " - Burn 2 - Chill 1": the effects on a card, empty when there are none. */
+    static String tags(GameState s, String name) {
+        StringBuilder sb = new StringBuilder();
+        s.statusesOf(name).forEach((k, t) -> sb.append("  -  ").append(k.label()).append(' ').append(t));
+        return sb.toString();
     }
 
     /** How the story ended, for the story pane; empty while it is still going. */
@@ -39,8 +46,8 @@ record GameViewModel(String title, String phase, String scene, List<Card> heroes
         return over ? s.endingText() : "";
     }
 
-    private static Card hero(Character c) {
-        return new Card(c.getName(), c.getCharacterClass().name() + "  -  AC " + c.getArmorClass(),
+    private static Card hero(GameState s, Character c) {
+        return new Card(c.getName(), c.getCharacterClass().name() + "  -  AC " + c.getArmorClass() + tags(s, c.getName()),
                 c.getHealth(), c.getMaxHealth(), c.isAlive(),
                 Sprites.lookForHero(c.getCharacterClass().name()), attacksText(c),
                 c.getCharacterClass().attacks().stream()
@@ -49,8 +56,8 @@ record GameViewModel(String title, String phase, String scene, List<Card> heroes
                 detailsText(c, c.getCharacterClass().name(), c.getCharacterClass().attacks()), c.getArmorClass());
     }
 
-    private static Card enemy(Monster m) {
-        return new Card(m.getName(), m.getWeapon().name() + "  -  AC " + m.getArmorClass(),
+    private static Card enemy(GameState s, Monster m) {
+        return new Card(m.getName(), m.getWeapon().name() + "  -  AC " + m.getArmorClass() + tags(s, m.getName()),
                 m.getHealth(), m.getMaxHealth(), m.isAlive(),
                 Sprites.lookForEnemy(m.getName(), m.getWeapon().name()), "", List.of(),
                 detailsText(m, "Enemy", List.of(m.getWeapon())), m.getArmorClass());

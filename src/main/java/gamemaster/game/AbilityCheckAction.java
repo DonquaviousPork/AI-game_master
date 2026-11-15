@@ -29,7 +29,7 @@ public class AbilityCheckAction implements Action {
     public ActionResult execute(GameState state, RuleEngine rules) {
         CheckResult r = rules.rollAbilityCheck(actor, stat, difficulty);
         return new ActionResult(actor.getName() + " makes a " + stat + " check (rolled " + r.total()
-                + " vs " + r.difficulty() + "): " + (r.success() ? "success." : "failure."));
+                + " vs " + r.difficulty() + "): " + (r.success() ? "success." : "failure."), r.success());
     }
 
     @Override public void undo(GameState state) { /* nothing to reverse */ }

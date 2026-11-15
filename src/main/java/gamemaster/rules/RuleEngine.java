@@ -46,6 +46,11 @@ public class RuleEngine {
      * A natural 20 always hits and is critical; a natural 1 always misses and is a fumble.
      */
     public AttackResult rollAttack(Combatant attacker, Weapon weapon, Combatant target) {
+        return rollAttack(attacker, weapon, target, 0, 0);
+    }
+
+    /** As above, with an effect adjusting the attacker's roll (attackAdjust) and the target's armor class (armorAdjust). */
+    public AttackResult rollAttack(Combatant attacker, Weapon weapon, Combatant target, int attackAdjust, int armorAdjust) {
         requireAlive(attacker, "attack");
         Objects.requireNonNull(weapon, "weapon");
         Objects.requireNonNull(target, "target");
@@ -53,9 +58,9 @@ public class RuleEngine {
             throw new IllegalStateException(target.getName() + " is already defeated.");
         }
         int roll = dice.roll(D20);
-        int modifier = attacker.getModifier(weapon.stat()) + weapon.attackBonus();
+        int modifier = attacker.getModifier(weapon.stat()) + weapon.attackBonus() + attackAdjust;
         int total = roll + modifier;
-        int armorClass = target.getArmorClass();
+        int armorClass = target.getArmorClass() + armorAdjust;
         boolean critical = roll == D20;
         boolean fumble = roll == 1;
         boolean hit = critical || (!fumble && total >= armorClass);
@@ -93,6 +98,12 @@ public class RuleEngine {
 
     public SaveResult rollSavingThrow(Combatant target, Stat stat) {
         return rollSavingThrow(target, stat, DEFAULT_DIFFICULTY);
+    }
+
+    /** Healing Light: a d6 plus the caster's WISDOM modifier, never below 1. The caller applies it. */
+    public int rollHealing(Combatant caster) {
+        requireAlive(caster, "cast a healing spell");
+        return Math.max(1, dice.roll(6) + caster.getModifier(Stat.WISDOM));
     }
 
     private static void requireAlive(Combatant c, String action) {

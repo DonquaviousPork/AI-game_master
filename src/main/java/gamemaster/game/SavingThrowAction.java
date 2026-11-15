@@ -39,7 +39,7 @@ public class SavingThrowAction implements Action {
                 + " (rolled " + r.total() + " vs " + r.difficulty() + "): ";
         if (r.success()) {
             damageTaken = 0;
-            return new ActionResult(head + "saved.");
+            return new ActionResult(head + "saved.", true);
         }
         int before = target.getHealth();
         target.applyDamage(damageOnFail);

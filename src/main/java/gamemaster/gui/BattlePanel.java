@@ -42,6 +42,10 @@ final class BattlePanel extends JPanel {
     private final Map<String, String> lastTarget = new HashMap<>();
     private boolean enabled = true;
     private boolean hasEnemies;
+    private int healsLeft;
+
+    /** The attack-menu entry for a wizard's party heal. */
+    static final String HEAL_ITEM = "Healing Light (whole party)";
 
     BattlePanel(Consumer<List<BattlePlan.Pick>> onFight) {
         super(new BorderLayout(12, 0));
@@ -63,6 +67,7 @@ final class BattlePanel extends JPanel {
         List<GameViewModel.Card> enemyCards = m.enemies().stream().filter(GameViewModel.Card::alive).toList();
         List<String> enemies = enemyCards.stream().map(GameViewModel.Card::name).toList();
         hasEnemies = !enemies.isEmpty();
+        healsLeft = m.healsLeft();
         for (GameViewModel.Card hero : m.heroes()) {
             if (!hero.alive()) {
                 continue;
@@ -70,6 +75,10 @@ final class BattlePanel extends JPanel {
             JComboBox<String> attack = new JComboBox<>();
             attack.addItem(PASS);
             hero.attacks().forEach(a -> attack.addItem(a.name()));
+            boolean canHeal = hero.detail().startsWith("Wizard") && healsLeft > 0;
+            if (canHeal) {
+                attack.addItem(HEAL_ITEM);
+            }
             JComboBox<String> target = new JComboBox<>();
             enemies.forEach(target::addItem);
             DarkUi.styleCombo(attack);
@@ -107,6 +116,11 @@ final class BattlePanel extends JPanel {
         Runnable update = () -> {
             Object a = attack.getSelectedItem();
             Object t = target.getSelectedItem();
+            if (HEAL_ITEM.equals(a)) {
+                badge.set(null);
+                odds.setText("Heals every living hero for d6 + WIS (min 1).  Uses left: " + healsLeft);
+                return;
+            }
             GameViewModel.AttackInfo info = hero.attacks().stream()
                     .filter(x -> x.name().equals(a)).findFirst().orElse(null);
             GameViewModel.Card enemy = enemyCards.stream().filter(x -> x.name().equals(t)).findFirst().orElse(null);
@@ -173,7 +187,9 @@ final class BattlePanel extends JPanel {
         for (Row r : rows) {
             Object a = r.attack().getSelectedItem();
             Object t = r.target().getSelectedItem();
-            if (a != null && t != null && !PASS.equals(a)) {
+            if (HEAL_ITEM.equals(a)) {
+                out.add(new BattlePlan.Pick(r.hero(), BattlePlan.HEAL, "the party"));
+            } else if (a != null && t != null && !PASS.equals(a)) {
                 out.add(new BattlePlan.Pick(r.hero(), a.toString(), t.toString()));
             }
         }

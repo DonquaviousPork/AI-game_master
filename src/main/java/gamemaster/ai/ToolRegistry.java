@@ -27,6 +27,7 @@ public class ToolRegistry {
         registry.register(new AttackTool(engine));
         registry.register(new SavingThrowTool(engine));
         registry.register(new SpawnMonsterTool(engine));
+        registry.register(new HealPartyTool(engine));
         registry.register(new EndStoryTool(engine));
         return registry;
     }
