@@ -90,9 +90,14 @@ because it contains your key. Saved games go to a `saves` folder next to where t
 - **Battle menu** (combat only): pick each hero's attack and target from menus,
   then press Fight! Each choice shows a strength badge (Weak, Fair, Strong, Very strong),
   the hit chance and the damage range against that target. Switch back with "Type instead".
+- **Title screen:** the first screen is an animated pixel-art cover (a hero party of
+  fighter, rogue and wizard against a gang of monsters) with New game, Load game,
+  Settings and Quit, plus a Demo mode checkbox. It has a dusk version for dark mode and a
+  sunny version for light mode. Arrow keys and Enter work; "Main menu" during play returns to it.
 - **Undo**, **Save**, **Load** and **Main menu** buttons (the menu warns about
   unsaved progress; closing the window does too).
 - **View menu:** dark and light mode (Ctrl+D / Ctrl+L), remembered between runs.
+- **Settings** (title screen button or menu bar): dark or light mode, demo mode and sound.
 - **Settings menu:**
   - *Sound...* sets music volume, effects volume and mute (remembered).
   - *Demo mode: 5 turns, one easy enemy* makes the next adventure last 5 turns with a
@@ -143,7 +148,7 @@ setup), `/demo [off]` (demo mode: 5 turns and one weak enemy), `/turns <n>` (tur
 | `gamemaster.ai` | Scenario generation, the agent loop (`AgentOrchestrator`), tools (`ToolRegistry`), `StateDescriber`, name matching (`Lookup`) and story memory (`MemoryManager`) |
 | `gamemaster.app` | `GameFacade`, the single entry point used by the CLI and GUI |
 | `gamemaster.cli` | `CliSession` and `CliApp`, the command-line game |
-| `gamemaster.gui` | Swing GUI: `GuiApp`, `MainWindow`, `AppPanel`, `SetupPanel`, `BriefingPanel`, `GamePanel` (a `GameView`), `BattlePanel`, `SoundDialog`, `GuiTheme` |
+| `gamemaster.gui` | Swing GUI: `GuiApp`, `MainWindow`, `AppPanel`, `CoverPanel`, `CoverArt`, `PixelFont`, `SettingsDialog`, `SetupPanel`, `BriefingPanel`, `GamePanel` (a `GameView`), `BattlePanel`, `SoundDialog`, `GuiTheme` |
 | `gamemaster.audio` | `ToneSynth` (generates the sounds) and `Sound` (plays them) |
 | `gamemaster.save` | `SaveRepository` and `SaveService` for saving and loading games |
 

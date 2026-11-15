@@ -351,3 +351,11 @@ the git history; this file is the design-level record.
 
 ## Commit 25 - Every default class has a strong and a weak attack
 - Rebalanced so that, against a typical AC 12 enemy and default stats, each class has at least one Strong and one Weak attack by the `AttackOdds` rating: Fighter's Throwing Axe is now d6 -2 (Weak; Slash is Strong), Rogue's Sneak Attack is now d10 -1 (Strong; Pommel Strike is Weak), Wizard's Fire Bolt is now d10 -1 (Strong; Staff Strike is Weak). `ClassBalanceTest` keeps this true. Custom-stat heroes can differ.
+
+## Commit 26 - Title screen
+- New first screen (`CoverPanel`, `CoverArt`, `PixelFont`): animated pixel-art cover drawn in code (no image files) on a 400x225 grid scaled up with nearest-neighbour. A fighter, rogue and wizard face a gang of monsters (reusing the in-game `Sprites`), with banners, spears, sparks at the clash points, a magic bolt from the wizard's staff and drifting embers (dark) or birds (light).
+- Two versions: a dusk scene for dark mode and a sunny scene for light mode, chosen from the current `GuiTheme` mode.
+- Menu: New game, Load game, Settings, Quit (mouse, arrow keys, Enter) and a pixel-style Demo mode checkbox tied to `GameFacade.setDemoMode`. Quit goes through the window's close handler, so the unsaved-progress warning still appears.
+- `SettingsDialog` (new): dark/light mode, demo mode, and a button to the sound dialog. The menu bar's demo checkbox now re-syncs when opened.
+- `AppPanel`: cover is the first card; "Main menu" from play and the new "Back to title" button on the setup screen return to it. `SetupPanel.load()` is shared with the cover's Load game.
+- Tests: `CoverArtTest` (both versions are detailed, correctly sized, differ from each other, and animate). 279 tests, 0 failures.

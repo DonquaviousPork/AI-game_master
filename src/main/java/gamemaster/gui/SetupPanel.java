@@ -35,6 +35,8 @@ final class SetupPanel extends BackdropPanel {
     private final StyledButton customButton = new StyledButton("Custom stats...", false);
     private final StyledButton startButton = new StyledButton("Begin the adventure", true);
     private final StyledButton loadButton = new StyledButton("Load saved game", false);
+    private final StyledButton backButton = new StyledButton("Back to title", false);
+    private Runnable onBack = () -> { };
 
     SetupPanel(GameFacade game, Consumer<GeneratedScenario> onStarted, Runnable onLoaded) {
         super(new BorderLayout(0, 22));
@@ -60,6 +62,7 @@ final class SetupPanel extends BackdropPanel {
         customButton.addActionListener(e -> addCustom());
         startButton.addActionListener(e -> start());
         loadButton.addActionListener(e -> load());
+        backButton.addActionListener(e -> onBack.run());
         refreshParty();
     }
 
@@ -140,6 +143,7 @@ final class SetupPanel extends BackdropPanel {
         go.setOpaque(false);
         go.add(startButton);
         go.add(loadButton);
+        go.add(backButton);
         adventure.add(go, BorderLayout.SOUTH);
 
         column.add(create);
@@ -193,7 +197,13 @@ final class SetupPanel extends BackdropPanel {
         });
     }
 
-    private void load() {
+    /** Called by the title screen to return to it. */
+    void setOnBack(Runnable onBack) {
+        this.onBack = onBack;
+    }
+
+    /** Asks which saved game to load and loads it; also used by the title screen's Load game. */
+    void load() {
         List<String> saves = game.listSaves();
         if (saves.isEmpty()) {
             info("There are no saved games yet.");
