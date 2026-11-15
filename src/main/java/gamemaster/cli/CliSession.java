@@ -227,9 +227,25 @@ public class CliSession {
                 out.println("      attacks: " + c.getCharacterClass().attacks().stream()
                         .map(w -> w.name() + " d" + w.damageSides() + " " + (w.attackBonus() >= 0 ? "+" : "") + w.attackBonus())
                         .collect(java.util.stream.Collectors.joining("; ")));
+                printOdds(c);
             }
         }
     }
+
+    /** Odds of each of the hero's attacks against the first living enemy, or against a typical AC when there is none. */
+    private void printOdds(Character c) {
+        Monster target = game.getState().getMonsters().stream().filter(Monster::isAlive).findFirst().orElse(null);
+        int ac = target == null ? TYPICAL_AC : target.getArmorClass();
+        out.println("      odds vs " + (target == null ? "a typical enemy (AC " + ac + ")"
+                : target.getName() + " (AC " + ac + ")") + ":");
+        for (gamemaster.model.Weapon w : c.getCharacterClass().attacks()) {
+            gamemaster.rules.AttackOdds o = gamemaster.rules.AttackOdds.of(c, w, ac);
+            out.println(String.format("        %-14s %-11s hit %3s   damage %s", w.name(),
+                    o.rating().label(), o.hitText(), o.damageText()));
+        }
+    }
+
+    private static final int TYPICAL_AC = 12;
 
     private String statusLine() {
         StringBuilder sb = new StringBuilder("[Turn " + Math.min(game.getState().getTurnsTaken(), game.getState().getTurnLimit())

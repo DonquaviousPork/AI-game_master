@@ -166,4 +166,18 @@ class CliSessionTest {
         String out = run(new FakeLLM(), String.join("\n", "/add Fighter Brenna", "/party", "/quit"));
         assertTrue(out.contains("attacks: Slash d8 +0; Shield Bash d4 +2; Power Strike d12 -3; Throwing Axe d6 +0"), out);
     }
+
+    @Test
+    void thePartyListShowsTheOddsOfEachAttack() throws Exception {
+        String out = run(new FakeLLM(), String.join("\n", "/add Fighter Brenna", "/party", "/quit"));
+        assertTrue(out.contains("odds vs a typical enemy (AC 12)"), out);
+        assertTrue(out.contains("Slash") && out.contains("hit ") && out.contains("damage "), out);
+    }
+
+    @Test
+    void duringAFightTheOddsAreAgainstTheFirstLivingEnemy() throws Exception {
+        FakeLLM llm = new FakeLLM(SCENARIO);
+        String out = run(llm, String.join("\n", "/add Fighter Brenna", "/start crypt", "/status", "/quit"));
+        assertTrue(out.contains("odds vs Skeleton (AC"), out);
+    }
 }

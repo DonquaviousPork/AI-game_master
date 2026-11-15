@@ -14,7 +14,10 @@ record GameViewModel(String title, String phase, String scene, List<Card> heroes
 
     /** One hero or enemy as shown on a card. */
     record Card(String name, String detail, int health, int maxHealth, boolean alive, String look, String tooltip,
-                 List<String> attacks, String details) {}
+                 List<AttackInfo> attacks, String details, int armorClass) {}
+
+    /** What the battle menu needs to work out the odds of one attack. */
+    record AttackInfo(String name, int damageSides, int statModifier, int attackBonus) {}
 
     static GameViewModel from(GameState s) {
         List<Card> heroes = s.getParty().getCharacters().stream().map(GameViewModel::hero).toList();
@@ -38,15 +41,17 @@ record GameViewModel(String title, String phase, String scene, List<Card> heroes
         return new Card(c.getName(), c.getCharacterClass().name() + "  -  AC " + c.getArmorClass(),
                 c.getHealth(), c.getMaxHealth(), c.isAlive(),
                 Sprites.lookForHero(c.getCharacterClass().name()), attacksText(c),
-                c.getCharacterClass().attacks().stream().map(gamemaster.model.Weapon::name).toList(),
-                detailsText(c, c.getCharacterClass().name(), c.getCharacterClass().attacks()));
+                c.getCharacterClass().attacks().stream()
+                        .map(w -> new AttackInfo(w.name(), w.damageSides(), c.getModifier(w.stat()), w.attackBonus()))
+                        .toList(),
+                detailsText(c, c.getCharacterClass().name(), c.getCharacterClass().attacks()), c.getArmorClass());
     }
 
     private static Card enemy(Monster m) {
         return new Card(m.getName(), m.getWeapon().name() + "  -  AC " + m.getArmorClass(),
                 m.getHealth(), m.getMaxHealth(), m.isAlive(),
                 Sprites.lookForEnemy(m.getName(), m.getWeapon().name()), "", List.of(),
-                detailsText(m, "Enemy", List.of(m.getWeapon())));
+                detailsText(m, "Enemy", List.of(m.getWeapon())), m.getArmorClass());
     }
 
     /** Everything shown when a card is clicked: abilities with modifiers, health, armour class and attacks. */

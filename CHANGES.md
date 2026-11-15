@@ -342,3 +342,9 @@ the git history; this file is the design-level record.
 ## Commit 23 - Easy-win demo
 - Demo mode now also makes the next adventure easy to win: `ScenarioGenerator.generate(theme, easy)` keeps one enemy, caps its health at 5 and armor class at 8, and the engine sets the objective to "Defeat the <enemy>." The model is told (via `StateDescriber`) to end the story as a victory once the enemy falls; the 5-turn limit still ends it in defeat otherwise.
 - `GameFacade.setDemoMode`/`isDemoMode`; GUI Settings checkbox "Demo mode: 5 turns, one easy enemy"; CLI `/demo [off]`.
+
+## Commit 24 - Attack odds and a redesigned battle menu
+- `rules/AttackOdds` (new): works out, without rolling, the hit chance (d20 + stat modifier + attack bonus against armor class; natural 20 always hits, natural 1 always misses), the damage range (die + modifier, never below 1), the average damage and a strength rating (Weak / Fair / Strong / Very strong) from the damage expected per attack. Critical hits are not counted in the rating.
+- Battle menu: each hero is a rounded card with the attack and target menus and a colour-coded strength badge plus "Hit n%  Damage a-b  vs AC n" for the chosen attack and target; it updates when either menu changes.
+- CLI: `/party` and `/status` list the odds of every attack against the first living enemy (or a typical AC 12 when there is none).
+- `GameViewModel.Card` carries each attack's numbers and the enemy's armor class.

@@ -76,7 +76,7 @@ because it contains your key. Saved games go to a `saves` folder next to where t
 
 ### Rules at a glance
 - Each hero has four attacks, each with its own damage die and to-hit bonus.
-  Open the Party card or use `/party` to see them.
+  Click a hero's card, or use `/party` (which also shows the odds against the current enemy), to see them.
 - A natural 20 is a critical hit (always hits, doubled damage dice). A natural 1
   is a fumble (always misses).
 - Naming a move the hero does not have makes the attempt fail and wastes the turn.
@@ -88,7 +88,8 @@ because it contains your key. Saved games go to a `saves` folder next to where t
 - **Party and enemy cards** show health bars; click a card to see abilities,
   modifiers, HP, AC and attacks.
 - **Battle menu** (combat only): pick each hero's attack and target from menus,
-  then press Fight! Switch back with "Type instead".
+  then press Fight! Each choice shows a strength badge (Weak, Fair, Strong, Very strong),
+  the hit chance and the damage range against that target. Switch back with "Type instead".
 - **Undo**, **Save**, **Load** and **Main menu** buttons (the menu warns about
   unsaved progress; closing the window does too).
 - **View menu:** dark and light mode (Ctrl+D / Ctrl+L), remembered between runs.
