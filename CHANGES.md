@@ -303,6 +303,13 @@ the git history; this file is the design-level record.
 - Return to the main menu: new "Main menu" button in the play screen (warns about unsaved progress like closing does), `GameFacade.returnToMenu`, `GameEngine.reset`, `GameState.reset`, `Party.clear`, and a `/new` command in the CLI. This abandons the current game and goes back to an empty setup.
 - Tests: `LookupTest` (name matching, the four attacks, refusal of unlisted attacks), critical hit, fumble and attack-bonus tests in `RuleEngineTest`, engine-level crit, fumble and reset tests, `GameFacade.returnToMenu`, CLI `/new` and `/party`, and the card tooltip. Two older tests were scripted with a natural 20 and now use 19, because a 20 is a critical hit.
 
+## Commit 18: failed attempts for unlisted moves, and the optional battle menu
+- Changed from commit 17: a hero asked to use a move that is not one of its four attacks no longer gets an error. The hero tries and the attempt fails: no dice are rolled, no damage is done, the turn is spent, and the rules line says "X tries 'Y' but cannot use that move, so the attempt fails and the turn is wasted. X can only use: ...". The system prompt now tells the model to pass the move to the `attack` tool exactly as the player asked instead of substituting a different attack.
+- A defeated enemy's rules line no longer repeats "now has 0/N HP".
+- New optional battle menu (GUI, Combat phase only): the "Battle menu" button swaps the text box for one row per living hero with a menu of that hero's attacks (or "do nothing") and a menu of the living enemies, and one "Fight!" button. `BattlePlan` turns the choices into one precise instruction ("Matthew uses Slash on Forest Sprite. ...") that goes through the normal `submitAction` path, so the engine still rolls and applies everything. The story pane shows a short form of the choices. The menu returns to typing automatically when combat ends, and typing still works at any time ("Type instead").
+- `GameViewModel.Card` gained `attacks` (the hero's attack names) so the menu is built from the immutable view model, not from the live game.
+- Tests: failed attempt changes nothing and rolls nothing, defeated enemy has no HP sentence, `BattlePlanTest` (instruction text, short form, menu built from a real game).
+
 ## Still to log (later commits)
 
 - Updated class diagram, plus sequence diagrams that changed.

@@ -39,9 +39,15 @@ public class AttackTool implements Tool {
                     + attacker.getName() + " cannot attack " + target.getName() + ".");
         }
         String attackName = args.has("attack") && !args.get("attack").isJsonNull() ? args.get("attack").getAsString() : null;
+        String failed = Lookup.unusableAttempt(attacker, attackName);
+        if (failed != null) {
+            return failed;      // the hero tried, could not, and the turn is spent; nothing in the game changes
+        }
         String result = engine.resolveAction(
                 new AttackAction(attacker, Lookup.weaponOf(attacker, attackName), target)).summary();
-        return result + " " + target.getName() + " now has " + target.getHealth() + "/"
-                + target.getMaxHealth() + " HP. Phase: " + state.getPhase().name() + ".";
+        String hp = target.isAlive()
+                ? " " + target.getName() + " now has " + target.getHealth() + "/" + target.getMaxHealth() + " HP."
+                : "";
+        return result + hp + " Phase: " + state.getPhase().name() + ".";
     }
 }

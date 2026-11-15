@@ -133,6 +133,22 @@ final class Lookup {
         return chosen;
     }
 
+    /**
+     * When a hero is asked to use a move that is not one of its attacks, the hero still tries and the attempt
+     * fails: no roll, no damage, the turn is spent. Returns that report, or null when the attack can be used.
+     */
+    static String unusableAttempt(Combatant c, String attackName) {
+        if (!(c instanceof Character hero) || attackName == null || attackName.isBlank()) {
+            return null;
+        }
+        var cls = hero.getCharacterClass();
+        if (cls.attackNamed(attackName) != null) {
+            return null;
+        }
+        return hero.getName() + " tries \"" + attackName.trim() + "\" but cannot use that move, so the attempt fails "
+                + "and the turn is wasted. " + hero.getName() + " can only use: " + attackList(cls.attacks()) + ".";
+    }
+
     static String attackList(java.util.List<Weapon> attacks) {
         return attacks.stream().map(w -> w.name() + " (d" + w.damageSides() + ", "
                 + (w.attackBonus() >= 0 ? "+" : "") + w.attackBonus() + " to hit)")

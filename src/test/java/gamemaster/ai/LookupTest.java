@@ -118,19 +118,22 @@ class LookupTest {
     }
 
     @Test
-    void anAttackThatIsNotOnTheListIsRefusedAndTheListIsShown() {
-        GameEngine e = engine();
+    void anAttackThatIsNotOnTheListIsATriedAndFailedAttemptNotAnError() {
+        GameEngine e = engine();   // no dice scripted: a failed attempt must not roll anything
         String out = run(e, "{\"attacker\":\"David\",\"target\":\"Emberwolf\",\"attack\":\"Kill Everyone\"}");
-        assertTrue(out.startsWith("Error:"), out);
+        assertFalse(out.startsWith("Error:"), out);
+        assertTrue(out.contains("David tries \"Kill Everyone\" but cannot use that move"), out);
+        assertTrue(out.contains("the turn is wasted"), out);
         assertTrue(out.contains("can only use: Slash"), out);
         assertEquals(12, e.getState().getMonsters().get(0).getHealth());
+        assertEquals(24, e.getState().getParty().getCharacters().get(0).getHealth());
     }
 
     @Test
     void aWizardCannotUseAFightersAttack() {
         GameEngine e = engine();
         String out = run(e, "{\"attacker\":\"Noah\",\"target\":\"Emberwolf\",\"attack\":\"Power Strike\"}");
-        assertTrue(out.startsWith("Error:"), out);
+        assertTrue(out.contains("Noah tries \"Power Strike\" but cannot use that move"), out);
         assertTrue(out.contains("Magic Missile"), out);
     }
 
@@ -147,5 +150,15 @@ class LookupTest {
         GameEngine e = engine(15, 4);
         String out = run(e, "{\"attacker\":\"Emberwolf\",\"target\":\"David\",\"attack\":\"Fireball\"}");
         assertTrue(out.contains("with Dagger"), out);
+    }
+
+    @Test
+    void aDefeatedEnemyIsNotFollowedByAHealthSentence() {
+        GameEngine e = engine(15, 8, 15, 8);   // two hits of 10 damage each on the 12-HP wolf
+        String first = run(e, "{\"attacker\":\"David\",\"target\":\"Emberwolf\"}");
+        assertTrue(first.contains("now has 2/12 HP"), first);
+        String second = run(e, "{\"attacker\":\"David\",\"target\":\"Emberwolf\"}");
+        assertTrue(second.contains("Emberwolf is defeated."), second);
+        assertFalse(second.contains("now has"), second);
     }
 }

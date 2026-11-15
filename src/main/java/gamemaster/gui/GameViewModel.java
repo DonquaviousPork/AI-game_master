@@ -12,7 +12,8 @@ import java.util.List;
 record GameViewModel(String title, String phase, String scene, List<Card> heroes, List<Card> enemies, boolean over) {
 
     /** One hero or enemy as shown on a card. */
-    record Card(String name, String detail, int health, int maxHealth, boolean alive, String look, String tooltip) {}
+    record Card(String name, String detail, int health, int maxHealth, boolean alive, String look, String tooltip,
+                 List<String> attacks) {}
 
     static GameViewModel from(GameState s) {
         List<Card> heroes = s.getParty().getCharacters().stream().map(GameViewModel::hero).toList();
@@ -28,13 +29,14 @@ record GameViewModel(String title, String phase, String scene, List<Card> heroes
     private static Card hero(Character c) {
         return new Card(c.getName(), c.getCharacterClass().name() + "  -  AC " + c.getArmorClass(),
                 c.getHealth(), c.getMaxHealth(), c.isAlive(),
-                Sprites.lookForHero(c.getCharacterClass().name()), attacksText(c));
+                Sprites.lookForHero(c.getCharacterClass().name()), attacksText(c),
+                c.getCharacterClass().attacks().stream().map(gamemaster.model.Weapon::name).toList());
     }
 
     private static Card enemy(Monster m) {
         return new Card(m.getName(), m.getWeapon().name() + "  -  AC " + m.getArmorClass(),
                 m.getHealth(), m.getMaxHealth(), m.isAlive(),
-                Sprites.lookForEnemy(m.getName(), m.getWeapon().name()), "");
+                Sprites.lookForEnemy(m.getName(), m.getWeapon().name()), "", List.of());
     }
 
     /** One line per attack the hero can use, for the card's tooltip. */

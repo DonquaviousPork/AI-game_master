@@ -50,6 +50,11 @@ final class GamePanel extends BackdropPanel implements GameView {
     private final StyledButton save = new StyledButton("Save", false);
     private final StyledButton load = new StyledButton("Load", false);
     private final StyledButton menu = new StyledButton("Main menu", false);
+    private final StyledButton battle = new StyledButton("Battle menu", false);
+    private final BattlePanel battlePanel = new BattlePanel(this::fightRound);
+    private final JPanel inputCards = new JPanel(new java.awt.CardLayout());
+    private boolean battleMode;
+    private boolean inCombat;
     private Runnable onMenu = () -> {};
 
     private boolean busy;
@@ -71,6 +76,8 @@ final class GamePanel extends BackdropPanel implements GameView {
         undo.addActionListener(e -> undo());
         save.addActionListener(e -> save());
         load.addActionListener(e -> load());
+        battle.addActionListener(e -> setBattleMode(!battleMode));
+        battle.setToolTipText("Combat only: pick each hero's attack and target from menus instead of typing");
         game.attach(this);
         applyEnabled();
     }
@@ -118,7 +125,27 @@ final class GamePanel extends BackdropPanel implements GameView {
             paragraph("The story has ended.", Style.ENDING);
             setStatus("The story has ended. You can load a saved game.", GuiTheme.PURPLE_SOFT);
         }
+        inCombat = "Combat".equals(m.phase()) && !m.over();
+        battlePanel.refresh(m);
+        if (!inCombat && battleMode) {
+            setBattleMode(false);
+        }
         applyEnabled();
+    }
+
+    // ---- battle menu ----
+
+    private void setBattleMode(boolean on) {
+        battleMode = on && inCombat;
+        ((java.awt.CardLayout) inputCards.getLayout()).show(inputCards, battleMode ? "battle" : "type");
+        battle.setText(battleMode ? "Type instead" : "Battle menu");
+        revalidate();
+        repaint();
+    }
+
+    /** Called by the battle menu: sends every hero's choice as one round. */
+    private void fightRound(List<BattlePlan.Pick> picks) {
+        submit(BattlePlan.display(picks), BattlePlan.instruction(picks));
     }
 
     // ---- entry points from the app ----
@@ -163,10 +190,15 @@ final class GamePanel extends BackdropPanel implements GameView {
 
     private void send() {
         String text = input.getText().trim();
+        submit(text, text);
+    }
+
+    /** Sends {@code text} to the game master; {@code shown} is what the story pane shows as the player's turn. */
+    private void submit(String shown, String text) {
         if (text.isEmpty() || busy || over) {
             return;
         }
-        paragraph("You: " + text, Style.PLAYER);
+        paragraph("You: " + shown, Style.PLAYER);
         input.setText("");
         unsaved = true;
         busy = true;
@@ -332,13 +364,17 @@ final class GamePanel extends BackdropPanel implements GameView {
         row.add(send, BorderLayout.EAST);
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         buttons.setOpaque(false);
+        buttons.add(battle);
         buttons.add(undo);
         buttons.add(save);
         buttons.add(load);
         buttons.add(menu);
         JPanel south = new JPanel(new BorderLayout(0, 8));
         south.setOpaque(false);
-        south.add(row, BorderLayout.NORTH);
+        inputCards.setOpaque(false);
+        inputCards.add(row, "type");
+        inputCards.add(battlePanel, "battle");
+        south.add(inputCards, BorderLayout.NORTH);
         south.add(buttons, BorderLayout.SOUTH);
         p.add(south, BorderLayout.SOUTH);
         return p;
@@ -348,6 +384,8 @@ final class GamePanel extends BackdropPanel implements GameView {
         input.setEnabled(!busy && !over);
         send.setEnabled(!busy && !over);
         undo.setEnabled(!busy && !over);
+        battle.setEnabled(!busy && !over && (inCombat || battleMode));
+        battlePanel.setEnabled(!busy && !over);
         save.setEnabled(!busy && !over);
         load.setEnabled(!busy);
         menu.setEnabled(!busy);
