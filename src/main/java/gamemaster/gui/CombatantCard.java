@@ -59,6 +59,12 @@ final class CombatantCard extends JPanel {
         top.setOpaque(false);
         top.add(name, BorderLayout.NORTH);
         top.add(detail, BorderLayout.SOUTH);
+        if (!card.effects().isEmpty()) {
+            JPanel badgeBox = new JPanel(new java.awt.GridBagLayout());
+            badgeBox.setOpaque(false);
+            badgeBox.add(new StatusBadges(card.effects()));
+            top.add(badgeBox, BorderLayout.EAST);
+        }
         JPanel text = new JPanel(new BorderLayout(0, 6));
         text.setOpaque(false);
         text.add(top, BorderLayout.NORTH);

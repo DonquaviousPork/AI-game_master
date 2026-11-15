@@ -43,6 +43,14 @@ public class SpawnMonsterTool implements Tool {
             throw new IllegalStateException("At most " + EncounterBudget.MAX_SPAWNS_PER_TURN
                     + " enemies can appear in one turn. Narrate what has happened and bring more in later.");
         }
+        String clamped = "";
+        if (args.has("health") && args.get("health").isJsonPrimitive() && args.get("health").getAsJsonPrimitive().isNumber()) {
+            int asked = args.get("health").getAsInt();
+            if (asked > JsonFields.MAX_HEALTH) {
+                args.addProperty("health", JsonFields.MAX_HEALTH);     // a boss asked for 45 becomes 30; the limits below still apply
+                clamped = " (the requested health " + asked + " was lowered to the maximum of " + JsonFields.MAX_HEALTH + ")";
+            }
+        }
         Monster monster = JsonFields.monster(args);
         var scenario = state.getScenario();
         if (scenario != null && scenario.type() == gamemaster.game.ObjectiveType.DEFEAT_TARGET
@@ -72,6 +80,6 @@ public class SpawnMonsterTool implements Tool {
         state.noteSpawn();
         engine.addMonster(monster);
         return monster.getName() + " appears (HP " + monster.getMaxHealth() + ", AC " + monster.getArmorClass()
-                + ")" + note + ". Phase: " + engine.getState().getPhase().name() + ".";
+                + ")" + note + clamped + ". Phase: " + engine.getState().getPhase().name() + ".";
     }
 }

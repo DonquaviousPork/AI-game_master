@@ -34,6 +34,8 @@ public class GameState {
     private final Map<String, Map<StatusKind, Integer>> statuses = new LinkedHashMap<>();
     /** Enemies that have already used an effect this turn (each may use one per turn). */
     private final java.util.Set<String> effectUsers = new java.util.HashSet<>();
+    /** Names of everyone who has attacked this turn; the AI layer uses it to remind the model which enemies still must. */
+    private final java.util.Set<String> attackers = new java.util.HashSet<>();
 
     /** Healing Light can be cast this many times in one adventure. */
     public static final int HEALS_PER_ADVENTURE = 2;
@@ -236,8 +238,13 @@ public class GameState {
         beatTurns++;
         spawnsThisTurn = 0;
         effectUsers.clear();
+        attackers.clear();
         changed();
     }
+
+    public void noteAttacker(String name) { attackers.add(name); }
+
+    public boolean hasAttackedThisTurn(String name) { return attackers.contains(name); }
 
     // ---- status effects ----
 

@@ -18,6 +18,7 @@ import gamemaster.model.Weapon;
 import gamemaster.model.WizardClass;
 import gamemaster.rules.FixedDice;
 import gamemaster.rules.RuleEngine;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class StatusEffectsTest {
@@ -195,5 +196,24 @@ class StatusEffectsTest {
                 .thenText("The rat falls.");
         var result = new AgentOrchestrator(llm, e).takeTurn("attack");
         assertEquals(1, result.toolActivity().size(), result.toolActivity().toString());
+    }
+
+    @Test
+    void whenTheLastHeroFallsTheModelIsToldTheAdventureIsLost() {
+        Monster brute = new Monster("Brute", 30, 10, Weapon.LONGSWORD);
+        Party party = new Party();
+        party.addCharacter(wizard);
+        GameEngine e = new GameEngine(new GameState(party), new RuleEngine(new FixedDice(20, 8, 8)));
+        e.setScenario(new Scenario("Cave", "d"));
+        e.addMonster(brute);
+        wizard.applyDamage(wizard.getMaxHealth() - 1);
+        var llm = new gamemaster.ai.FakeLLM()
+                .thenTool("attack", "{\"attacker\":\"Brute\",\"target\":\"Mira\"}")
+                .thenText("Mira falls.");
+        var result = new AgentOrchestrator(llm, e).takeTurn("attack");
+        assertTrue(result.gameOver());
+        boolean told = llm.calls.stream().flatMap(List::stream).anyMatch(m -> m.content() != null
+                && m.content().contains("every hero has fallen and the adventure is lost"));
+        assertTrue(told);
     }
 }

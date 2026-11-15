@@ -36,17 +36,19 @@ public class AttackAction implements Action {
         int weakened = state.statusTurns(target.getName(), StatusKind.WEAKEN) > 0 ? -StatusKind.WEAKEN_AC : 0;
         AttackResult hit = rules.rollAttack(attacker, weapon, target, chilled, weakened);
         effectBefore = -1;
+        state.noteAttacker(attacker.getName());
+        String die = ": d20 " + hit.roll() + (hit.modifier() >= 0 ? " +" : " ") + hit.modifier();
         if (!hit.hit()) {
             damageDealt = 0;
             String what = hit.fumble() ? " FUMBLE! (natural 1)" : "";
             return new ActionResult(attacker.getName() + " attacks " + target.getName() + " with " + weapon.name()
-                    + " (rolled " + hit.total() + " vs AC " + hit.targetArmorClass() + ") and misses." + what);
+                    + " (rolled " + hit.total() + " vs AC " + hit.targetArmorClass() + die + ") and misses." + what);
         }
         int before = target.getHealth();
         target.applyDamage(rules.rollDamage(attacker, weapon, hit.critical()));
         damageDealt = before - target.getHealth();
         String text = attacker.getName() + " hits " + target.getName() + " with " + weapon.name() + " (rolled "
-                + hit.total() + " vs AC " + hit.targetArmorClass() + ") for " + damageDealt + " damage."
+                + hit.total() + " vs AC " + hit.targetArmorClass() + die + ") for " + damageDealt + " damage."
                 + (hit.critical() ? " CRITICAL HIT! (natural 20, double damage dice)" : "");
         if (!target.isAlive()) {
             text += " " + target.getName() + " is defeated.";

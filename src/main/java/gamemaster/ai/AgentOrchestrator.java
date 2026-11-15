@@ -63,6 +63,9 @@ public class AgentOrchestrator {
               skip ahead, and do not mention act numbers to the player. Build rising action: each scene adds a
               new clue, reveal, complication or higher stake, and the final act is the climax. Complications
               serve the objective; they are not new goals.
+            - The rules log is the only truth about hits, damage, healing, health and effects. Never state a number
+              or an outcome the tools did not report, never narrate an enemy attack that was not resolved with
+              the attack tool, and never give a hero's health unless a tool result just reported it.
             - Critical hits and fumbles are decided by the dice; report them as the tool states them.
             - When you have what you need, reply with two to four sentences of narration for the player
               and, if the story is still going, end with what the heroes can do next. Do not use tools
@@ -110,6 +113,27 @@ public class AgentOrchestrator {
         }
     }
 
+    /**
+     * In a fight, after a hero's attack: names the living enemies that have not attacked yet this turn, so the model
+     * resolves their attacks with the tool instead of narrating hits and damage the rules never reported.
+     */
+    private String pendingEnemyReminder(String toolName) {
+        var state = engine.getState();
+        if (!toolName.equals("attack") || state.getPhase().name().equals("Story") || state.isConcluded()
+                || state.getParty().isDefeated()) {
+            return "";
+        }
+        boolean heroActed = state.getParty().getCharacters().stream().anyMatch(c -> state.hasAttackedThisTurn(c.getName()));
+        List<String> waiting = state.getMonsters().stream()
+                .filter(m -> m.isAlive() && !state.hasAttackedThisTurn(m.getName())).map(m -> m.getName()).toList();
+        if (!heroActed || waiting.isEmpty()) {
+            return "";
+        }
+        return " [GAME: enemies that have not attacked this round yet: " + String.join(", ", waiting)
+                + ". Call attack for each of them before you narrate, and describe only attacks, damage and HP that "
+                + "the rules have reported.]";
+    }
+
     private TurnResult runTurn(String playerInput) {
         List<String> activity = new ArrayList<>();
         for (String line : engine.tickStatuses()) {
@@ -142,10 +166,17 @@ public class AgentOrchestrator {
                     toolRuns++;
                     boolean wasOver = engine.checkEndCondition();
                     result = tools.execute(call);
-                    if (!(result.startsWith("Error:") && result.contains("is not allowed during the"))) {
+                    if (!(result.startsWith("Error:") && (result.contains("is not allowed during the")
+                            || result.contains("is defeated and cannot attack")
+                            || result.contains("is already defeated")))) {
                         activity.add(call.name() + ": " + result);     // a move refused only because the phase changed is not shown
                     }
-                    if (!wasOver && engine.getState().isConcluded()) {
+                    result += pendingEnemyReminder(call.name());
+                    if (!wasOver && engine.getState().getParty().isDefeated() && !engine.getState().isConcluded()) {
+                        result += " [GAME: every hero has fallen and the adventure is lost. Reply with a short closing "
+                                + "scene (two to four sentences) of the defeat. Do not say the objective was achieved, "
+                                + "do not undo what the rules reported, and do not use more tools.]";
+                    } else if (!wasOver && engine.getState().isConcluded()) {
                         result += " [GAME: the story has just ended"
                                 + (engine.getState().isObjectiveAchieved() ? " as a victory" : "")
                                 + ". Reply with a short closing scene (two to four sentences) that resolves "

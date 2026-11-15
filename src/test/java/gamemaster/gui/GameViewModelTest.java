@@ -129,4 +129,39 @@ class GameViewModelTest {
         e.concludeStory(true);
         assertTrue(GameViewModel.from(e.getState()).ending().startsWith("VICTORY"));
     }
+
+    @Test
+    void defeatedEnemiesGoToTheBottomOfTheList() {
+        GameEngine e = engine();
+        e.setScenario(new Scenario("Grove", "d"));
+        Monster first = new Monster("Wolf", 12, 13, Weapon.DAGGER);
+        Monster second = new Monster("Bear", 12, 13, Weapon.DAGGER);
+        Monster third = new Monster("Crow", 12, 13, Weapon.DAGGER);
+        e.addMonster(first);
+        e.addMonster(second);
+        e.addMonster(third);
+        first.applyDamage(100);
+        GameViewModel m = GameViewModel.from(e.getState());
+        assertEquals(java.util.List.of("Bear", "Crow", "Wolf"), m.enemies().stream().map(GameViewModel.Card::name).toList());
+        assertFalse(m.enemies().get(2).alive());
+    }
+
+    @Test
+    void cardsListTheirEffectsAndTheTurnsLeft() {
+        GameEngine e = engine();
+        e.setScenario(new Scenario("Grove", "d"));
+        e.addMonster(new Monster("Wolf", 12, 13, Weapon.DAGGER));
+        e.getState().applyStatus("Wolf", gamemaster.game.StatusKind.BURN);
+        e.getState().applyStatus("Brenna", gamemaster.game.StatusKind.CHILL);
+        e.getState().setStatusTurns("Brenna", gamemaster.game.StatusKind.CHILL, 1);
+        GameViewModel m = GameViewModel.from(e.getState());
+        assertEquals(1, m.enemies().get(0).effects().size());
+        assertEquals(gamemaster.game.StatusKind.BURN, m.enemies().get(0).effects().get(0).kind());
+        assertEquals(2, m.enemies().get(0).effects().get(0).turns());
+        assertEquals(1, m.heroes().get(0).effects().get(0).turns());
+        assertTrue(m.heroes().get(1).effects().isEmpty());
+        StatusBadges badges = new StatusBadges(m.enemies().get(0).effects());
+        assertTrue(badges.getPreferredSize().width > 0);
+        assertTrue(badges.getToolTipText().contains("Burn"));
+    }
 }

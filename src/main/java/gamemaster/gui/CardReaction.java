@@ -20,6 +20,7 @@ record CardReaction(Kind kind, int amount, String bubble) {
     private static final String[] MISS = {"Too slow!", "Missed me!", "Nice try.", "Whoosh!"};
     private static final String[] HEAL = {"Ahh, better.", "Much better.", "Thanks!"};
     private static final String[] DEFEAT = {"Tell my story...", "Not like this.", "I regret nothing.", "Gah!"};
+    private static final String[] DEFEAT_ENEMY = {"Impossible...", "Curse you!", "Back to the dark...", "Argh!"};
     private static final String[] CHEER = {"Victory!", "Nailed it!", "Easy.", "We did it!"};
 
     /**
@@ -33,10 +34,13 @@ record CardReaction(Kind kind, int amount, String bubble) {
     static CardReaction detect(GameViewModel.Card now, Integer prevHealth, boolean wasAlive, List<String> newLines,
                                boolean cheer, boolean hero) {
         if (cheer && hero && now.alive()) {
-            return make(Kind.CHEER, 0, now.name());
+            return make(Kind.CHEER, 0, now.name(), true);
         }
         if (prevHealth == null) {
             return null;
+        }
+        if (!wasAlive) {
+            return null;        // a fallen card says nothing more, whatever the log mentions
         }
         boolean crit = false;
         boolean miss = false;
@@ -51,23 +55,23 @@ record CardReaction(Kind kind, int amount, String bubble) {
         int lost = prevHealth - now.health();
         if (lost > 0) {
             if (wasAlive && !now.alive()) {
-                return make(Kind.DEFEAT, lost, now.name());
+                return make(Kind.DEFEAT, lost, now.name(), hero);
             }
-            return make(crit ? Kind.CRIT : Kind.HIT, lost, now.name());
+            return make(crit ? Kind.CRIT : Kind.HIT, lost, now.name(), hero);
         }
         if (lost < 0) {
-            return make(Kind.HEAL, -lost, now.name());
+            return make(Kind.HEAL, -lost, now.name(), hero);
         }
-        return miss ? make(Kind.MISS, 0, now.name()) : null;
+        return miss && now.alive() ? make(Kind.MISS, 0, now.name(), hero) : null;
     }
 
-    private static CardReaction make(Kind kind, int amount, String name) {
+    private static CardReaction make(Kind kind, int amount, String name, boolean hero) {
         String[] pool = switch (kind) {
             case HIT -> HIT;
             case CRIT -> CRIT;
             case MISS -> MISS;
             case HEAL -> HEAL;
-            case DEFEAT -> DEFEAT;
+            case DEFEAT -> hero ? DEFEAT : DEFEAT_ENEMY;
             case CHEER -> CHEER;
         };
         Random rnd = new Random(Objects.hash(name, amount, kind));

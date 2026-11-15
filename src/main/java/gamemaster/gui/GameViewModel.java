@@ -15,14 +15,25 @@ record GameViewModel(String title, String phase, String scene, List<Card> heroes
 
     /** One hero or enemy as shown on a card. */
     record Card(String name, String detail, int health, int maxHealth, boolean alive, String look, String tooltip,
-                 List<AttackInfo> attacks, String details, int armorClass) {}
+                 List<AttackInfo> attacks, String details, int armorClass, List<Effect> effects) {
+
+        /** The old shape, for a card with no effects on it. */
+        Card(String name, String detail, int health, int maxHealth, boolean alive, String look, String tooltip,
+             List<AttackInfo> attacks, String details, int armorClass) {
+            this(name, detail, health, maxHealth, alive, look, tooltip, attacks, details, armorClass, List.of());
+        }
+    }
+
+    /** One status effect on a card and the turns it has left. */
+    record Effect(gamemaster.game.StatusKind kind, int turns) {}
 
     /** What the battle menu needs to work out the odds of one attack. */
     record AttackInfo(String name, int damageSides, int statModifier, int attackBonus) {}
 
     static GameViewModel from(GameState s) {
         List<Card> heroes = s.getParty().getCharacters().stream().map(c -> hero(s, c)).toList();
-        List<Card> enemies = s.getMonsters().stream().map(m -> enemy(s, m)).toList();
+        List<Card> enemies = s.getMonsters().stream().map(m -> enemy(s, m))
+                .sorted(java.util.Comparator.comparing((Card c) -> !c.alive())).toList();   // the fallen go to the bottom
         boolean over = s.isConcluded() || s.getParty().isDefeated();
         return new GameViewModel(
                 s.getScenario() == null ? "" : s.getScenario().title(),
@@ -34,11 +45,11 @@ record GameViewModel(String title, String phase, String scene, List<Card> heroes
                 List.copyOf(s.getLog()), s.healsLeft());
     }
 
-    /** " - Burn 2 - Chill 1": the effects on a card, empty when there are none. */
-    static String tags(GameState s, String name) {
-        StringBuilder sb = new StringBuilder();
-        s.statusesOf(name).forEach((k, t) -> sb.append("  -  ").append(k.label()).append(' ').append(t));
-        return sb.toString();
+    /** The effects on one combatant, in a fixed order. */
+    static List<Effect> effects(GameState s, String name) {
+        List<Effect> out = new java.util.ArrayList<>();
+        s.statusesOf(name).forEach((k, t) -> out.add(new Effect(k, t)));
+        return out;
     }
 
     /** How the story ended, for the story pane; empty while it is still going. */
@@ -47,20 +58,20 @@ record GameViewModel(String title, String phase, String scene, List<Card> heroes
     }
 
     private static Card hero(GameState s, Character c) {
-        return new Card(c.getName(), c.getCharacterClass().name() + "  -  AC " + c.getArmorClass() + tags(s, c.getName()),
+        return new Card(c.getName(), c.getCharacterClass().name() + "  -  AC " + c.getArmorClass(),
                 c.getHealth(), c.getMaxHealth(), c.isAlive(),
                 Sprites.lookForHero(c.getCharacterClass().name()), attacksText(c),
                 c.getCharacterClass().attacks().stream()
                         .map(w -> new AttackInfo(w.name(), w.damageSides(), c.getModifier(w.stat()), w.attackBonus()))
                         .toList(),
-                detailsText(c, c.getCharacterClass().name(), c.getCharacterClass().attacks()), c.getArmorClass());
+                detailsText(c, c.getCharacterClass().name(), c.getCharacterClass().attacks()), c.getArmorClass(), effects(s, c.getName()));
     }
 
     private static Card enemy(GameState s, Monster m) {
-        return new Card(m.getName(), m.getWeapon().name() + "  -  AC " + m.getArmorClass() + tags(s, m.getName()),
+        return new Card(m.getName(), m.getWeapon().name() + "  -  AC " + m.getArmorClass(),
                 m.getHealth(), m.getMaxHealth(), m.isAlive(),
                 Sprites.lookForEnemy(m.getName(), m.getWeapon().name()), "", List.of(),
-                detailsText(m, "Enemy", List.of(m.getWeapon())), m.getArmorClass());
+                detailsText(m, "Enemy", List.of(m.getWeapon())), m.getArmorClass(), effects(s, m.getName()));
     }
 
     /** Everything shown when a card is clicked: abilities with modifiers, health, armour class and attacks. */

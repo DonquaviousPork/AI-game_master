@@ -65,4 +65,25 @@ class CardReactionTest {
         CardReaction b = CardReaction.detect(card("Brenna", 6, true), 12, true, List.of(), false, true);
         assertEquals(a, b);
     }
+
+    @Test
+    void aCardThatWasAlreadyDefeatedSaysNothingEvenIfTheLogMentionsIt() {
+        List<String> lines = List.of("Brenna attacks Gruk with Slash (rolled 4 vs AC 12) and misses.");
+        assertEquals(null, CardReaction.detect(card("Gruk", 0, false), 0, false, lines, false, false));
+        assertEquals(null, CardReaction.detect(card("Gruk", 0, false), 0, false, List.of(), false, false));
+    }
+
+    @Test
+    void enemiesAndHeroesDoNotShareDefeatLines() {
+        java.util.Set<String> hero = new java.util.HashSet<>();
+        java.util.Set<String> enemy = new java.util.HashSet<>();
+        for (int i = 0; i < 40; i++) {
+            hero.add(CardReaction.detect(card("H" + i, 0, false), 5 + i, true, List.of(), false, true).bubble());
+            enemy.add(CardReaction.detect(card("E" + i, 0, false), 5 + i, true, List.of(), false, false).bubble());
+        }
+        assertTrue(hero.contains("Tell my story..."));
+        assertTrue(enemy.contains("Curse you!"));
+        assertTrue(java.util.Collections.disjoint(hero.stream().filter(x -> !x.equals("Gah!")).toList(), enemy));
+        assertTrue(!enemy.contains("Tell my story..."));
+    }
 }
