@@ -29,6 +29,20 @@ public class CliSession {
         this.game = Objects.requireNonNull(game, "game");
         this.in = Objects.requireNonNull(in, "in");
         this.out = Objects.requireNonNull(out, "out");
+        game.onRateLimitWait(this::announceWait);
+    }
+
+    private int lastAnnounced = -1;
+
+    /** Prints a short note when a rate-limited request is waiting, about every 10 seconds. */
+    private void announceWait(int secondsLeft) {
+        if (secondsLeft == 0) {
+            lastAnnounced = -1;
+            out.println("Retrying now...");
+        } else if (lastAnnounced < 0 || lastAnnounced - secondsLeft >= 10) {
+            lastAnnounced = secondsLeft;
+            out.println("Rate limit reached - retrying automatically in " + secondsLeft + " s...");
+        }
     }
 
     public void run() throws IOException {
@@ -105,6 +119,7 @@ public class CliSession {
             }
             case "saves" -> out.println(game.listSaves().isEmpty()
                     ? "No saved games." : "Saved games: " + String.join(", ", game.listSaves()));
+            case "usage" -> out.println(game.usageSummary() + ".");
             case "new" -> {
                 game.returnToMenu();
                 out.println("Adventure abandoned (use /save first to keep one). Add characters with /add, then /start.");
@@ -237,6 +252,7 @@ public class CliSession {
         out.println("  /status   show the scene, party and enemies");
         out.println("  /undo     undo the last damage or flee (dice are not re-rolled)");
         out.println("  /save <name>, /load <name>, /saves");
+        out.println("  /usage    model calls and tokens used so far");
         out.println("  /new      abandon this adventure and go back to setup");
         out.println("  /help, /quit");
         out.println("While playing, type what your party does, for example: I attack the wolf.");

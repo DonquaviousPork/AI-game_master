@@ -26,13 +26,20 @@ public class OpenAIClient implements LLMClient {
     private static final double TEMPERATURE = 0.8;
 
     /** How many times a rate-limited (HTTP 429) request is retried before giving up. */
-    static final int MAX_RATE_LIMIT_RETRIES = 2;
-    static final long DEFAULT_WAIT_MS = 5_000;
-    static final long MAX_WAIT_MS = 20_000;
+    static final int MAX_RATE_LIMIT_RETRIES = 6;
+    static final long DEFAULT_WAIT_MS = 10_000;
+    /** One wait never exceeds this: the per-minute limits reset within a minute. */
+    static final long MAX_WAIT_MS = 65_000;
+    /** The request gives up once it has waited this long in total. */
+    static final long MAX_TOTAL_WAIT_MS = 150_000;
 
     private final LLMConfig config;
     private final HttpClient http;
     private final LongConsumer sleeper;
+    private volatile WaitListener waitListener = seconds -> {};
+    private volatile boolean cancelled;
+    private final java.util.concurrent.atomic.AtomicLong tokens = new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
 
     public OpenAIClient(LLMConfig config) {
         this(config, HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build());
@@ -54,6 +61,54 @@ public class OpenAIClient implements LLMClient {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new LLMException("The request was interrupted.", e);
+        }
+    }
+
+    @Override
+    public void setWaitListener(WaitListener listener) {
+        this.waitListener = listener == null ? seconds -> {} : listener;
+    }
+
+    @Override
+    public void cancelWait() {
+        cancelled = true;
+    }
+
+    @Override
+    public long totalTokens() {
+        return tokens.get();
+    }
+
+    @Override
+    public int callCount() {
+        return calls.get();
+    }
+
+    /** Waits {@code ms}, one second at a time, telling the listener how long is left. */
+    private void waitOut(long ms) {
+        long remaining = ms;
+        while (remaining > 0) {
+            if (cancelled) {
+                throw new LLMException("Waiting for the rate limit was cancelled.");
+            }
+            waitListener.waiting((int) Math.ceil(remaining / 1000.0));
+            long step = Math.min(1000, remaining);
+            sleeper.accept(step);
+            remaining -= step;
+        }
+        if (cancelled) {
+            throw new LLMException("Waiting for the rate limit was cancelled.");
+        }
+        waitListener.waiting(0);
+    }
+
+    /** The total_tokens figure in a successful reply, or 0 when the provider did not send one. */
+    static long tokensIn(String body) {
+        try {
+            JsonObject usage = JsonParser.parseString(body).getAsJsonObject().getAsJsonObject("usage");
+            return usage == null || !usage.has("total_tokens") ? 0 : usage.get("total_tokens").getAsLong();
+        } catch (RuntimeException e) {
+            return 0;
         }
     }
 
@@ -81,12 +136,20 @@ public class OpenAIClient implements LLMClient {
                 .POST(HttpRequest.BodyPublishers.ofString(buildRequestBody(messages, tools)))
                 .build();
         try {
+            cancelled = false;
             HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
-            for (int retry = 0; response.statusCode() == 429 && retry < MAX_RATE_LIMIT_RETRIES; retry++) {
-                sleeper.accept(waitMillis(response.headers().firstValue("Retry-After").orElse(null)));
+            long waited = 0;
+            for (int retry = 0; response.statusCode() == 429 && retry < MAX_RATE_LIMIT_RETRIES
+                    && waited < MAX_TOTAL_WAIT_MS; retry++) {
+                long wait = waitMillis(response.headers().firstValue("Retry-After").orElse(null)) + 500;
+                waited += wait;
+                waitOut(wait);
                 response = http.send(request, HttpResponse.BodyHandlers.ofString());
             }
-            return parseResponse(response.statusCode(), response.body());
+            LLMResponse parsed = parseResponse(response.statusCode(), response.body());
+            tokens.addAndGet(tokensIn(response.body()));
+            calls.incrementAndGet();
+            return parsed;
         } catch (IOException e) {
             throw new LLMException("Could not reach the model service: " + e.getMessage(), e);
         } catch (InterruptedException e) {
@@ -150,7 +213,7 @@ public class OpenAIClient implements LLMClient {
             throw new LLMException("The model service rejected the API key (HTTP " + status + ").");
         }
         if (status == 429) {
-            throw new LLMException("Rate limit reached (HTTP 429). Wait a minute and try again.");
+            throw new LLMException("Rate limit reached (HTTP 429) and it did not clear after waiting. Try again in a minute.");
         }
         if (status < 200 || status >= 300) {
             throw new LLMException("The model service returned HTTP " + status + ": " + abbreviate(body));

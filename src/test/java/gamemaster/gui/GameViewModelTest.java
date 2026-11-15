@@ -61,6 +61,10 @@ class GameViewModelTest {
         assertEquals(12, enemy.maxHealth());
         assertTrue(enemy.detail().contains("Dagger") && enemy.detail().contains("AC 13"));
         assertTrue(enemy.alive());
+        // clicking a card shows these details
+        assertTrue(hero.details().contains("Brenna") && hero.details().contains("Strength")
+                && hero.details().contains("HP 21 / 24") && hero.details().contains("Slash"), hero.details());
+        assertTrue(enemy.details().contains("Wolf") && enemy.details().contains("Dagger"), enemy.details());
     }
 
     @Test

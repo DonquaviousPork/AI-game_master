@@ -14,7 +14,7 @@ record GameViewModel(String title, String phase, String scene, List<Card> heroes
 
     /** One hero or enemy as shown on a card. */
     record Card(String name, String detail, int health, int maxHealth, boolean alive, String look, String tooltip,
-                 List<String> attacks) {}
+                 List<String> attacks, String details) {}
 
     static GameViewModel from(GameState s) {
         List<Card> heroes = s.getParty().getCharacters().stream().map(GameViewModel::hero).toList();
@@ -38,13 +38,34 @@ record GameViewModel(String title, String phase, String scene, List<Card> heroes
         return new Card(c.getName(), c.getCharacterClass().name() + "  -  AC " + c.getArmorClass(),
                 c.getHealth(), c.getMaxHealth(), c.isAlive(),
                 Sprites.lookForHero(c.getCharacterClass().name()), attacksText(c),
-                c.getCharacterClass().attacks().stream().map(gamemaster.model.Weapon::name).toList());
+                c.getCharacterClass().attacks().stream().map(gamemaster.model.Weapon::name).toList(),
+                detailsText(c, c.getCharacterClass().name(), c.getCharacterClass().attacks()));
     }
 
     private static Card enemy(Monster m) {
         return new Card(m.getName(), m.getWeapon().name() + "  -  AC " + m.getArmorClass(),
                 m.getHealth(), m.getMaxHealth(), m.isAlive(),
-                Sprites.lookForEnemy(m.getName(), m.getWeapon().name()), "", List.of());
+                Sprites.lookForEnemy(m.getName(), m.getWeapon().name()), "", List.of(),
+                detailsText(m, "Enemy", List.of(m.getWeapon())));
+    }
+
+    /** Everything shown when a card is clicked: abilities with modifiers, health, armour class and attacks. */
+    static String detailsText(gamemaster.model.Combatant c, String kind, List<gamemaster.model.Weapon> weapons) {
+        StringBuilder sb = new StringBuilder("<html><body style='width:260px'><b style='font-size:14px'>")
+                .append(c.getName()).append("</b> (").append(kind).append(")<br>")
+                .append("HP ").append(c.getHealth()).append(" / ").append(c.getMaxHealth())
+                .append(" &nbsp; AC ").append(c.getArmorClass()).append("<br><br>");
+        for (gamemaster.model.Stat s : gamemaster.model.Stat.values()) {
+            int mod = c.getModifier(s);
+            sb.append(s.name().charAt(0)).append(s.name().substring(1).toLowerCase()).append(": ")
+                    .append(c.getStat(s)).append(" (").append(mod >= 0 ? "+" : "").append(mod).append(")<br>");
+        }
+        sb.append("<br><b>Attacks</b>");
+        for (var w : weapons) {
+            sb.append("<br>").append(w.name()).append(" - d").append(w.damageSides()).append(", ")
+                    .append(w.attackBonus() >= 0 ? "+" : "").append(w.attackBonus()).append(" to hit");
+        }
+        return sb.append("</body></html>").toString();
     }
 
     /** One line per attack the hero can use, for the card's tooltip. */

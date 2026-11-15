@@ -324,3 +324,11 @@ the git history; this file is the design-level record.
 ## Still to log (later commits)
 
 - Updated class diagram, plus sequence diagrams that changed.
+
+## Commit 20 - Automatic rate-limit retry, usage tracking, card stats, animated background
+- `OpenAIClient`: on HTTP 429 it now waits for `Retry-After` (one wait up to 65 s, up to 6 retries, 150 s in total) and retries the same request, so the player no longer re-enters the action. A wait listener reports the seconds left; `cancelWait()` stops it. It also adds up the provider's `usage.total_tokens`.
+- `LLMClient`: `WaitListener`, `setWaitListener`, `cancelWait`, `totalTokens`, `callCount` (default no-ops).
+- `GameFacade`: `onRateLimitWait`, `cancelRateLimitWait`, `usageSummary`.
+- GUI: status line counts down ("retrying automatically in N s") with a "Stop waiting" button; token usage shown after each turn; clicking a hero or enemy card opens its stats (abilities with modifiers, HP, AC, attacks); the background glows drift and a slow wave runs along the bottom.
+- CLI: prints the countdown note; new `/usage` command.
+- `MemoryManager`: recent window 8 -> 6 turns, narration kept in memory cut to 300 characters (fewer tokens per call).

@@ -16,10 +16,10 @@ import java.util.Objects;
  */
 public class MemoryManager {
 
-    static final int RECENT_LIMIT = 8;      // fold when more than this many turns are stored
+    static final int RECENT_LIMIT = 6;      // fold when more than this many turns are stored
     static final int FOLD_COUNT = 4;        // how many of the oldest turns to fold at once
     static final int MAX_SUMMARY_CHARS = 1500;
-    static final int MAX_NARRATION_CHARS = 400;
+    static final int MAX_NARRATION_CHARS = 300;
     static final int MAX_ACTIVITY_CHARS = 160;
 
     private static final String SUMMARY_PROMPT = """

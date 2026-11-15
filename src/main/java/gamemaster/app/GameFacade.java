@@ -132,6 +132,17 @@ public class GameFacade {
 
     public GameState getState() { return state; }
 
+    /** Hears about rate-limit waits (seconds left; 0 when the request goes again). */
+    public void onRateLimitWait(LLMClient.WaitListener listener) { llm.setWaitListener(listener); }
+
+    /** Stops a rate-limit wait in progress. */
+    public void cancelRateLimitWait() { llm.cancelWait(); }
+
+    /** Model calls and tokens used so far this session, as reported by the provider. */
+    public String usageSummary() {
+        return llm.callCount() + " model calls, " + llm.totalTokens() + " tokens this session";
+    }
+
     public void attach(GameView view) { state.attach(view); }
 
     public boolean isStarted() { return state.getScenario() != null; }

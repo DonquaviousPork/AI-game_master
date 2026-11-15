@@ -59,6 +59,7 @@ final class GamePanel extends BackdropPanel implements GameView {
     private boolean inCombat;
     private Runnable onMenu = () -> {};
 
+    private final StyledButton stopWait = new StyledButton("Stop waiting", false);
     private boolean busy;
     private boolean over;
     private boolean endingShown;
@@ -80,6 +81,17 @@ final class GamePanel extends BackdropPanel implements GameView {
         load.addActionListener(e -> load());
         battle.addActionListener(e -> setBattleMode(!battleMode));
         battle.setToolTipText("Combat only: pick each hero's attack and target from menus instead of typing");
+        stopWait.setVisible(false);
+        stopWait.addActionListener(e -> game.cancelRateLimitWait());
+        game.onRateLimitWait(seconds -> SwingUtilities.invokeLater(() -> {
+            if (seconds > 0) {
+                setStatus("Rate limit reached - retrying automatically in " + seconds + " s...", GuiTheme.PURPLE_SOFT);
+                stopWait.setVisible(true);
+            } else {
+                setStatus("The game master is thinking...", GuiTheme.PURPLE_SOFT);
+                stopWait.setVisible(false);
+            }
+        }));
         game.attach(this);
         applyEnabled();
     }
@@ -211,6 +223,7 @@ final class GamePanel extends BackdropPanel implements GameView {
         setStatus("The game master is thinking...", GuiTheme.PURPLE_SOFT);
         Background.run(() -> game.submitAction(text), this::showTurn, t -> {
             busy = false;
+            stopWait.setVisible(false);
             setStatus(Background.describe(t), GuiTheme.ERROR);
             applyEnabled();
             input.requestFocusInWindow();
@@ -223,7 +236,9 @@ final class GamePanel extends BackdropPanel implements GameView {
             paragraph("[rules] " + line, Style.RULES);
         }
         busy = false;
-        setStatus(r.gameOver() ? "The story has ended." : "What do you do?", GuiTheme.MUTED);
+        stopWait.setVisible(false);
+        setStatus((r.gameOver() ? "The story has ended." : "What do you do?") + "   (" + game.usageSummary() + ")",
+                GuiTheme.MUTED);
         applyEnabled();
         input.requestFocusInWindow();
     }
@@ -371,7 +386,11 @@ final class GamePanel extends BackdropPanel implements GameView {
         p.setOpaque(false);
         status.setFont(GuiTheme.sans(java.awt.Font.PLAIN, 13f));
         status.setForeground(GuiTheme.MUTED);
-        p.add(status, BorderLayout.NORTH);
+        JPanel statusRow = new JPanel(new BorderLayout(10, 0));
+        statusRow.setOpaque(false);
+        statusRow.add(status, BorderLayout.CENTER);
+        statusRow.add(stopWait, BorderLayout.EAST);
+        p.add(statusRow, BorderLayout.NORTH);
 
         input.setFont(GuiTheme.sans(java.awt.Font.PLAIN, 15f));
         input.setBorder(GuiTheme.fieldBorder());

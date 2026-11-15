@@ -111,4 +111,17 @@ class OpenAIClientTest {
         assertEquals(OpenAIClient.DEFAULT_WAIT_MS, OpenAIClient.waitMillis("soon"));
         assertEquals(OpenAIClient.DEFAULT_WAIT_MS, OpenAIClient.waitMillis("-4"));
     }
+
+    @Test
+    void tokenUsageIsReadFromAReplyAndDefaultsToZero() {
+        assertEquals(1234L, OpenAIClient.tokensIn("{\"usage\":{\"total_tokens\":1234}}"));
+        assertEquals(0L, OpenAIClient.tokensIn("{\"choices\":[]}"));
+        assertEquals(0L, OpenAIClient.tokensIn("not json"));
+    }
+
+    @Test
+    void retryBudgetCoversAFullMinuteWindow() {
+        assertTrue(OpenAIClient.MAX_WAIT_MS >= 60_000);
+        assertTrue(OpenAIClient.MAX_TOTAL_WAIT_MS >= OpenAIClient.MAX_WAIT_MS);
+    }
 }

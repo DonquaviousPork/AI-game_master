@@ -26,6 +26,18 @@ final class CombatantCard extends JPanel {
         }
         setAlignmentX(LEFT_ALIGNMENT);
         setBorder(GuiTheme.padding(10, 14, 12, 14));
+        setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        String title = card.name();
+        String details = card.details();
+        addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                JLabel body = new JLabel(details);
+                body.setForeground(GuiTheme.TEXT);
+                javax.swing.JOptionPane.showMessageDialog(CombatantCard.this, body, title,
+                        javax.swing.JOptionPane.PLAIN_MESSAGE);
+            }
+        });
 
         JLabel name = new JLabel(card.alive() ? card.name() : card.name() + "  (defeated)");
         name.setFont(GuiTheme.serif(java.awt.Font.BOLD, 16f));
