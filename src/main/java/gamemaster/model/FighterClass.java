@@ -15,6 +15,6 @@ public class FighterClass implements CharacterClass {
                 new Weapon("Slash", 8, Stat.STRENGTH, 0),
                 new Weapon("Shield Bash", 4, Stat.STRENGTH, 2),
                 new Weapon("Power Strike", 12, Stat.STRENGTH, -3),
-                new Weapon("Throwing Axe", 6, Stat.DEXTERITY, 0));
+                new Weapon("Throwing Axe", 6, Stat.DEXTERITY, -2));
     }
 }

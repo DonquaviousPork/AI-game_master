@@ -13,7 +13,7 @@ public class RogueClass implements CharacterClass {
     @Override public List<Weapon> attacks() {
         return List.of(
                 new Weapon("Quick Stab", 4, Stat.DEXTERITY, 2),
-                new Weapon("Sneak Attack", 8, Stat.DEXTERITY, -2),
+                new Weapon("Sneak Attack", 10, Stat.DEXTERITY, -1),
                 new Weapon("Dagger Throw", 6, Stat.DEXTERITY, 0),
                 new Weapon("Pommel Strike", 4, Stat.STRENGTH, 1));
     }

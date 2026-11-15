@@ -164,7 +164,7 @@ class CliSessionTest {
     @Test
     void thePartyListShowsEachHerosFourAttacks() throws Exception {
         String out = run(new FakeLLM(), String.join("\n", "/add Fighter Brenna", "/party", "/quit"));
-        assertTrue(out.contains("attacks: Slash d8 +0; Shield Bash d4 +2; Power Strike d12 -3; Throwing Axe d6 +0"), out);
+        assertTrue(out.contains("attacks: Slash d8 +0; Shield Bash d4 +2; Power Strike d12 -3; Throwing Axe d6 -2"), out);
     }
 
     @Test

@@ -348,3 +348,6 @@ the git history; this file is the design-level record.
 - Battle menu: each hero is a rounded card with the attack and target menus and a colour-coded strength badge plus "Hit n%  Damage a-b  vs AC n" for the chosen attack and target; it updates when either menu changes.
 - CLI: `/party` and `/status` list the odds of every attack against the first living enemy (or a typical AC 12 when there is none).
 - `GameViewModel.Card` carries each attack's numbers and the enemy's armor class.
+
+## Commit 25 - Every default class has a strong and a weak attack
+- Rebalanced so that, against a typical AC 12 enemy and default stats, each class has at least one Strong and one Weak attack by the `AttackOdds` rating: Fighter's Throwing Axe is now d6 -2 (Weak; Slash is Strong), Rogue's Sneak Attack is now d10 -1 (Strong; Pommel Strike is Weak), Wizard's Fire Bolt is now d10 -1 (Strong; Staff Strike is Weak). `ClassBalanceTest` keeps this true. Custom-stat heroes can differ.

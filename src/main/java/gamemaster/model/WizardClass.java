@@ -13,7 +13,7 @@ public class WizardClass implements CharacterClass {
     @Override public List<Weapon> attacks() {
         return List.of(
                 new Weapon("Magic Missile", 4, Stat.INTELLIGENCE, 2),
-                new Weapon("Fire Bolt", 8, Stat.INTELLIGENCE, -1),
+                new Weapon("Fire Bolt", 10, Stat.INTELLIGENCE, -1),
                 new Weapon("Frost Ray", 6, Stat.INTELLIGENCE, 0),
                 new Weapon("Staff Strike", 6, Stat.STRENGTH, 0));
     }
