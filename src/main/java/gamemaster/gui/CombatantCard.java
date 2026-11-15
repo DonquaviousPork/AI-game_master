@@ -15,10 +15,20 @@ final class CombatantCard extends JPanel {
 
     private final Color accent;
     private final boolean alive;
+    private final CardReaction reaction;
+    private final long reactionStart;
+    private javax.swing.Timer timer;
 
     CombatantCard(GameViewModel.Card card, Color accent) {
+        this(card, accent, null, 0);
+    }
+
+    /** {@code reactionStart} is a System.nanoTime() value, so a rebuilt card carries on the same animation. */
+    CombatantCard(GameViewModel.Card card, Color accent, CardReaction reaction, long reactionStart) {
         super(new BorderLayout(8, 0));
         this.accent = accent;
+        this.reaction = reaction;
+        this.reactionStart = reactionStart;
         this.alive = card.alive();
         setOpaque(false);
         if (!card.tooltip().isEmpty()) {
@@ -63,6 +73,117 @@ final class CombatantCard extends JPanel {
         add(text, BorderLayout.CENTER);
         setBorder(BorderFactory.createCompoundBorder(getBorder(), BorderFactory.createEmptyBorder()));
     }
+
+    private double progress() {
+        if (reaction == null) {
+            return 1;
+        }
+        return Math.min(1.0, (System.nanoTime() - reactionStart) / 1e6 / CardReaction.DURATION_MS);
+    }
+
+    @Override
+    public void addNotify() {
+        super.addNotify();
+        if (reaction != null && progress() < 1.0) {
+            timer = new javax.swing.Timer(30, e -> {
+                repaint();
+                if (progress() >= 1.0) {
+                    ((javax.swing.Timer) e.getSource()).stop();
+                }
+            });
+            timer.start();
+        }
+    }
+
+    @Override
+    public void removeNotify() {
+        if (timer != null) {
+            timer.stop();
+        }
+        super.removeNotify();
+    }
+
+    @Override
+    public void paint(Graphics g) {
+        double t = progress();
+        if (reaction == null || t >= 1.0) {
+            super.paint(g);
+            return;
+        }
+        int dx = 0;
+        int dy = 0;
+        double quick = Math.min(1.0, t / 0.35);
+        switch (reaction.kind()) {
+            case HIT, DEFEAT -> dx = (int) Math.round(Math.sin(t * 38) * 7 * (1 - quick));
+            case CRIT -> dx = (int) Math.round(Math.sin(t * 46) * 10 * (1 - quick));
+            case MISS -> dx = (int) Math.round(Math.sin(Math.min(1.0, t / 0.4) * Math.PI) * 14);
+            case CHEER -> dy = -(int) Math.round(Math.abs(Math.sin(t * Math.PI * 3)) * 7 * (1 - t));
+            default -> { }
+        }
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.translate(dx, dy);
+        super.paint(g2);
+        g2.dispose();
+        paintEffects((Graphics2D) g.create(), t);
+    }
+
+    /** Flash, floating number and speech bubble, drawn over the card. */
+    private void paintEffects(Graphics2D g2, double t) {
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        Color flash = switch (reaction.kind()) {
+            case HIT, DEFEAT -> new Color(255, 59, 59);
+            case CRIT -> new Color(255, 200, 40);
+            case HEAL -> new Color(70, 220, 120);
+            default -> null;
+        };
+        if (flash != null && t < 0.4) {
+            float a = (float) (0.45 * (1 - t / 0.4));
+            g2.setComposite(java.awt.AlphaComposite.SrcOver.derive(a));
+            g2.setColor(flash);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+            g2.setComposite(java.awt.AlphaComposite.SrcOver);
+        }
+        String text = reaction.floating();
+        if (!text.isEmpty()) {
+            boolean crit = reaction.kind() == CardReaction.Kind.CRIT;
+            g2.setFont(GuiTheme.sans(java.awt.Font.BOLD, crit ? 24f : 18f));
+            Color c = switch (reaction.kind()) {
+                case HEAL -> new Color(70, 220, 120);
+                case MISS -> new Color(190, 190, 200);
+                case CRIT -> new Color(255, 200, 40);
+                default -> new Color(255, 90, 90);
+            };
+            float a = (float) Math.max(0, Math.min(1, 1.6 * (1 - t)));
+            int x = getWidth() - g2.getFontMetrics().stringWidth(text) - 18;
+            int y = (int) (getHeight() * 0.62 - t * 34);
+            g2.setComposite(java.awt.AlphaComposite.SrcOver.derive(a));
+            g2.setColor(new Color(0, 0, 0));
+            g2.drawString(text, x + 1, y + 1);
+            g2.setColor(c);
+            g2.drawString(text, x, y);
+            g2.setComposite(java.awt.AlphaComposite.SrcOver);
+        }
+        if (t < 0.9) {
+            g2.setFont(GuiTheme.sans(java.awt.Font.BOLD, 11f));
+            String line = reaction.bubble();
+            int w = g2.getFontMetrics().stringWidth(line) + 16;
+            int x = Math.max(4, getWidth() - w - 6);
+            int y = 3;
+            float a = (float) (t < 0.1 ? t / 0.1 : t > 0.75 ? (0.9 - t) / 0.15 : 1.0);
+            g2.setComposite(java.awt.AlphaComposite.SrcOver.derive(Math.max(0f, Math.min(1f, a))));
+            g2.setColor(new Color(255, 255, 255));
+            g2.fillRoundRect(x, y, w, 20, 10, 10);
+            g2.fillPolygon(new int[] {x + 12, x + 20, x + 14}, new int[] {y + 19, y + 19, y + 25}, 3);
+            g2.setColor(new Color(30, 30, 40));
+            g2.drawString(line, x + 8, y + 14);
+            g2.setComposite(java.awt.AlphaComposite.SrcOver);
+        }
+        g2.dispose();
+    }
+
+    /** Test hook: the reaction this card is playing, or null. */
+    CardReaction reaction() { return reaction; }
 
     @Override
     public Dimension getMaximumSize() {

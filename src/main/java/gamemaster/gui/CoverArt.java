@@ -164,17 +164,18 @@ final class CoverArt {
         int c = dark ? 0x1B0D31 : 0x8C9BD6;
         int roof = dark ? c : 0xE04848;
         int x0 = 36, y0 = 134;
-        box(x0, y0 - 18, 44, 20, c);
-        box(x0 - 6, y0 - 34, 12, 36, c);
-        box(x0 + 40, y0 - 40, 12, 42, c);
-        box(x0 + 18, y0 - 28, 10, 14, c);
+        // the walls run down behind the front hill, so the castle sits on the ridge instead of floating above it
+        box(x0, y0 - 18, 44, 46, c);
+        box(x0 - 6, y0 - 34, 12, 62, c);
+        box(x0 + 40, y0 - 40, 12, 68, c);
+        box(x0 + 18, y0 - 28, 10, 40, c);
         spire(x0, y0 - 34, 8, 14, roof);
         spire(x0 + 46, y0 - 40, 8, 16, roof);
         spire(x0 + 23, y0 - 28, 6, 12, roof);
         if (!dark) {
             box(x0, y0 - 18, 44, 2, 0xB7C3EE);
-            box(x0 - 6, y0 - 34, 3, 36, 0xB7C3EE);
-            box(x0 + 40, y0 - 40, 3, 42, 0xB7C3EE);
+            box(x0 - 6, y0 - 34, 3, 62, 0xB7C3EE);
+            box(x0 + 40, y0 - 40, 3, 68, 0xB7C3EE);
         }
         for (int[] w : new int[][] {{x0 - 1, y0 - 26}, {x0 + 45, y0 - 32}, {x0 + 21, y0 - 20}, {x0 + 10, y0 - 10},
                 {x0 + 32, y0 - 10}, {x0 - 1, y0 - 12}}) {

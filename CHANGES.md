@@ -359,3 +359,9 @@ the git history; this file is the design-level record.
 - `SettingsDialog` (new): dark/light mode, demo mode, and a button to the sound dialog. The menu bar's demo checkbox now re-syncs when opened.
 - `AppPanel`: cover is the first card; "Main menu" from play and the new "Back to title" button on the setup screen return to it. `SetupPanel.load()` is shared with the cover's Load game.
 - Tests: `CoverArtTest` (both versions are detailed, correctly sized, differ from each other, and animate). 279 tests, 0 failures.
+
+## Commit 27 - Card reactions and cover polish
+- Cards react when something happens (`gui/CardReaction`, `CombatantCard`): a hit shakes the card, flashes it red and floats the damage ("-6"); a critical hit flashes gold with a bigger "-12!"; a miss makes the card sidestep with a grey "miss"; healing flashes green; a defeat shakes with a last line; living heroes hop when the party wins. Each reaction also shows a short speech bubble chosen from fixed lines (no model call). Reactions are worked out in `GamePanel` by comparing each card's health and the new rule lines with the previous update, so the engine is unchanged; loading or starting a game plays none.
+- `GameViewModel` now also carries the log lines.
+- Title screen: the castle's walls run down behind the front hill so it sits on the ridge instead of floating; the strip behind the menu shows the same animated scene, blurred and dimmed.
+- Tests: `CardReactionTest` (hit, critical, miss, heal, defeat, cheer, no reaction without a change). 286 tests, 0 failures.

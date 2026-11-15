@@ -94,6 +94,7 @@ because it contains your key. Saved games go to a `saves` folder next to where t
   fighter, rogue and wizard against a gang of monsters) with New game, Load game,
   Settings and Quit, plus a Demo mode checkbox. It has a dusk version for dark mode and a
   sunny version for light mode. Arrow keys and Enter work; "Main menu" during play returns to it.
+- **Card reactions:** hero and enemy cards shake, flash and show floating damage numbers and a short speech bubble when they are hit, miss, crit, heal or fall; heroes cheer on victory.
 - **Undo**, **Save**, **Load** and **Main menu** buttons (the menu warns about
   unsaved progress; closing the window does too).
 - **View menu:** dark and light mode (Ctrl+D / Ctrl+L), remembered between runs.

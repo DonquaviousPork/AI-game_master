@@ -10,7 +10,8 @@ import java.util.List;
  * and then handed to the screen thread, so painting never reads a game that is mid-change.
  */
 record GameViewModel(String title, String phase, String scene, List<Card> heroes, List<Card> enemies, boolean over,
-                     String objective, int turn, int turnLimit, String ending, boolean victory) {
+                     String objective, int turn, int turnLimit, String ending, boolean victory,
+                     List<String> log) {
 
     /** One hero or enemy as shown on a card. */
     record Card(String name, String detail, int health, int maxHealth, boolean alive, String look, String tooltip,
@@ -29,7 +30,8 @@ record GameViewModel(String title, String phase, String scene, List<Card> heroes
                 s.getCurrentEvent() == null ? "" : s.getCurrentEvent().description(),
                 heroes, enemies, over,
                 s.getScenario() == null ? "" : s.getScenario().objective(),
-                s.getTurnsTaken(), s.getTurnLimit(), endingText(s, over), over && s.isObjectiveAchieved());
+                s.getTurnsTaken(), s.getTurnLimit(), endingText(s, over), over && s.isObjectiveAchieved(),
+                List.copyOf(s.getLog()));
     }
 
     /** How the story ended, for the story pane; empty while it is still going. */

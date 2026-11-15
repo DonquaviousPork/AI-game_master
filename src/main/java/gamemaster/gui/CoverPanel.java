@@ -111,11 +111,47 @@ final class CoverPanel extends JPanel {
         double scale = Math.max(getWidth() / (double) CoverArt.W, (getHeight() - strip) / (double) CoverArt.H);
         int w = (int) Math.ceil(CoverArt.W * scale), h = (int) Math.ceil(CoverArt.H * scale);
         g2.drawImage(frame, (getWidth() - w) / 2, 0, w, h, null);
-        g2.setColor(new Color(dark ? 0x05030A : 0x145A2A));
-        g2.fillRect(0, getHeight() - strip, getWidth(), strip);
+        // the strip behind the menu shows the same animated scene, blurred and dimmed so the lettering stays readable
+        int top = getHeight() - strip;
+        g2.setClip(0, top, getWidth(), strip);
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2.drawImage(blurred(frame), (getWidth() - w) / 2, 0, w, h, null);
+        g2.setColor(new Color(dark ? 0x05030A : 0x0B3A1C, false));
+        g2.setComposite(AlphaComposite.SrcOver.derive(0.4f));
+        g2.fillRect(0, top, getWidth(), strip);
+        g2.setComposite(AlphaComposite.SrcOver);
+        g2.setClip(null);
         g2.setColor(new Color(dark ? 0x4A1D46 : 0x8BE04E));
-        g2.fillRect(0, getHeight() - strip, getWidth(), 3);
+        g2.fillRect(0, top, getWidth(), 3);
         g2.dispose();
+    }
+
+    private BufferedImage small1, small2;
+
+    /** A cheap blur: shrink the picture twice with smoothing; drawing it back up smoothly finishes the job. */
+    private BufferedImage blurred(BufferedImage src) {
+        if (small1 == null) {
+            small1 = new BufferedImage(src.getWidth() / 4, src.getHeight() / 4, BufferedImage.TYPE_INT_RGB);
+            small2 = new BufferedImage(src.getWidth() / 8, src.getHeight() / 8, BufferedImage.TYPE_INT_RGB);
+        }
+        shrink(src, small1);
+        shrink(small1, small2);
+        return small2;
+    }
+
+    private static void shrink(BufferedImage from, BufferedImage to) {
+        Graphics2D g = to.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        BufferedImage mid = from;
+        // halve in two steps so no pixel is skipped
+        int w = from.getWidth(), h = from.getHeight();
+        BufferedImage half = new BufferedImage(Math.max(1, w / 2), Math.max(1, h / 2), BufferedImage.TYPE_INT_RGB);
+        Graphics2D hg = half.createGraphics();
+        hg.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        hg.drawImage(mid, 0, 0, half.getWidth(), half.getHeight(), null);
+        hg.dispose();
+        g.drawImage(half, 0, 0, to.getWidth(), to.getHeight(), null);
+        g.dispose();
     }
 
     /** The translucent plate behind the menu. */

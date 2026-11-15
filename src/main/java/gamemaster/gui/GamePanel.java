@@ -64,6 +64,13 @@ final class GamePanel extends BackdropPanel implements GameView {
     private boolean busy;
     private boolean over;
     private boolean endingShown;
+    // card reactions: health and log length at the last update, and the reactions still playing
+    private final java.util.Map<String, Integer> lastHealth = new java.util.HashMap<>();
+    private final java.util.Map<String, Boolean> lastAlive = new java.util.HashMap<>();
+    private final java.util.Map<String, long[]> playing = new java.util.HashMap<>();
+    private final java.util.Map<String, CardReaction> playingReaction = new java.util.HashMap<>();
+    private int lastLogSize = -1;
+    private boolean cheered;
     private boolean unsaved;
 
     GamePanel(GameFacade game) {
@@ -98,6 +105,52 @@ final class GamePanel extends BackdropPanel implements GameView {
         applyEnabled();
     }
 
+    // ---- card reactions ----
+
+    /** Compares this update with the last one and starts a reaction on every card that something happened to. */
+    private void detectReactions(GameViewModel m) {
+        List<String> log = m.log();
+        List<String> fresh = lastLogSize < 0 || log.size() < lastLogSize ? List.of() : log.subList(lastLogSize, log.size());
+        boolean cheer = m.victory() && !cheered;
+        if (m.victory()) {
+            cheered = true;
+        }
+        long now = System.nanoTime();
+        for (boolean hero : new boolean[] {true, false}) {
+            for (GameViewModel.Card c : hero ? m.heroes() : m.enemies()) {
+                CardReaction r = CardReaction.detect(c, lastHealth.get(c.name()),
+                        lastAlive.getOrDefault(c.name(), true), fresh, cheer, hero);
+                if (r != null) {
+                    playing.put(c.name(), new long[] {now});
+                    playingReaction.put(c.name(), r);
+                }
+                lastHealth.put(c.name(), c.health());
+                lastAlive.put(c.name(), c.alive());
+            }
+        }
+        lastLogSize = log.size();
+    }
+
+    /** Forgets what the last update looked like, so loading or starting a game plays no reactions. */
+    private void resetReactions() {
+        lastHealth.clear();
+        lastAlive.clear();
+        playing.clear();
+        playingReaction.clear();
+        lastLogSize = -1;
+        cheered = false;
+    }
+
+    private CombatantCard card(GameViewModel.Card c, Color accent) {
+        long[] start = playing.get(c.name());
+        CardReaction r = playingReaction.get(c.name());
+        if (start != null && r != null
+                && (System.nanoTime() - start[0]) / 1e6 < CardReaction.DURATION_MS) {
+            return new CombatantCard(c, accent, r, start[0]);
+        }
+        return new CombatantCard(c, accent);
+    }
+
     // ---- Observer ----
 
     /** May be called from the background thread; the copy is made here and drawn on the screen thread. */
@@ -113,11 +166,12 @@ final class GamePanel extends BackdropPanel implements GameView {
         turnLabel.setText(m.objective().isEmpty() ? " " : "TURN " + Math.min(m.turn(), m.turnLimit()) + " / " + m.turnLimit());
         objective.setText(m.objective().isEmpty() ? " " : WrappedText.html("Objective: " + m.objective(), 780));
         over = m.over();
+        detectReactions(m);
         sidebar.removeAll();
         sidebar.add(sidebarTitle("PARTY"));
         sidebar.add(Box.createVerticalStrut(6));
         for (GameViewModel.Card c : m.heroes()) {
-            sidebar.add(new CombatantCard(c, GuiTheme.PURPLE));
+            sidebar.add(card(c, GuiTheme.PURPLE));
             sidebar.add(Box.createVerticalStrut(8));
         }
         sidebar.add(Box.createVerticalStrut(10));
@@ -125,7 +179,7 @@ final class GamePanel extends BackdropPanel implements GameView {
         sidebar.add(Box.createVerticalStrut(6));
         boolean any = false;
         for (GameViewModel.Card c : m.enemies()) {
-            sidebar.add(new CombatantCard(c, GuiTheme.HEALTH_LOW));
+            sidebar.add(card(c, GuiTheme.HEALTH_LOW));
             sidebar.add(Box.createVerticalStrut(8));
             any = true;
         }
@@ -178,6 +232,7 @@ final class GamePanel extends BackdropPanel implements GameView {
         unsaved = false;
         clearStory();
         endingShown = false;
+        resetReactions();
         paragraph(s.scenario().description(), Style.NARRATION);
         paragraph(s.openingEvent().description(), Style.SCENE);
         paragraph("OBJECTIVE: " + s.scenario().objective() + "  (" + game.getState().getTurnLimit() + " turns)", Style.SCENE);
@@ -197,6 +252,7 @@ final class GamePanel extends BackdropPanel implements GameView {
         unsaved = false;
         clearStory();
         endingShown = false;
+        resetReactions();
         GameState s = game.getState();
         paragraph("Game loaded.", Style.RULES);
         if (s.getCurrentEvent() != null) {
@@ -309,6 +365,7 @@ final class GamePanel extends BackdropPanel implements GameView {
         game.returnToMenu();
         unsaved = false;
         endingShown = false;
+        resetReactions();
         clearStory();
         onMenu.run();
     }
@@ -473,6 +530,7 @@ final class GamePanel extends BackdropPanel implements GameView {
         endingShown = saved.stream().anyMatch(e -> e.style().equals(Style.ENDING.name()));
         unsaved = unsavedProgress;
         setStatus(over ? "The story has ended." : "What do you do?", GuiTheme.MUTED);
+        resetReactions();
         render(GameViewModel.from(game.getState()));
     }
 
