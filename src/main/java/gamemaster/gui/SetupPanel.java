@@ -15,12 +15,11 @@ import javax.swing.BoxLayout;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 /** The first screen: build a party of one to four heroes, pick a theme, and let the AI start the adventure. */
-final class SetupPanel extends BackdropPanel {
+final class SetupPanel extends PixelBackdrop {
 
     private final GameFacade game;
     private final Consumer<GeneratedScenario> onStarted;
@@ -31,11 +30,11 @@ final class SetupPanel extends BackdropPanel {
     private final JTextField themeField = new JTextField(18);
     private final JPanel partyRows = new JPanel();
     private final JLabel status = new JLabel(" ");
-    private final StyledButton addButton = new StyledButton("Add", false);
-    private final StyledButton customButton = new StyledButton("Custom stats...", false);
-    private final StyledButton startButton = new StyledButton("Begin the adventure", true);
-    private final StyledButton loadButton = new StyledButton("Load saved game", false);
-    private final StyledButton backButton = new StyledButton("Back to title", false);
+    private final PixelButton addButton = new PixelButton("ADD", false);
+    private final PixelButton customButton = new PixelButton("CUSTOM STATS...", false);
+    private final PixelButton startButton = new PixelButton("BEGIN THE ADVENTURE", true);
+    private final PixelButton loadButton = new PixelButton("LOAD SAVED GAME", false);
+    private final PixelButton backButton = new PixelButton("BACK TO TITLE", false);
     private Runnable onBack = () -> { };
 
     SetupPanel(GameFacade game, Consumer<GeneratedScenario> onStarted, Runnable onLoaded) {
@@ -54,8 +53,12 @@ final class SetupPanel extends BackdropPanel {
         add(columns, BorderLayout.CENTER);
 
         status.setFont(GuiTheme.sans(java.awt.Font.PLAIN, 13f));
-        status.setForeground(GuiTheme.MUTED);
-        add(status, BorderLayout.SOUTH);
+        status.setForeground(PixelTheme.muted());
+        JPanel south = new JPanel(new BorderLayout(12, 0));
+        south.setOpaque(false);
+        south.add(status, BorderLayout.CENTER);
+        south.add(backButton, BorderLayout.EAST);
+        add(south, BorderLayout.SOUTH);
 
         addButton.addActionListener(e -> addQuick());
         nameField.addActionListener(e -> addQuick());
@@ -67,22 +70,20 @@ final class SetupPanel extends BackdropPanel {
     }
 
     private JComponent header() {
-        JPanel p = new JPanel(new BorderLayout(0, 4));
+        JPanel p = new JPanel(new BorderLayout(0, 10));
         p.setOpaque(false);
-        JLabel title = new JLabel("AI Game Master");
-        title.setFont(GuiTheme.serif(java.awt.Font.BOLD, 42f));
-        title.setForeground(GuiTheme.PURPLE_SOFT);
+        PixelLabel title = new PixelLabel("AI GAME MASTER", 5, PixelTheme::hilite, () -> new java.awt.Color(0xFF9F43));
         JLabel sub = new JLabel("Gather your party. The game master will write the rest, and the dice will decide.");
         sub.setFont(GuiTheme.serif(java.awt.Font.ITALIC, 16f));
-        sub.setForeground(GuiTheme.MUTED);
+        sub.setForeground(PixelTheme.text());
         p.add(title, BorderLayout.NORTH);
         p.add(sub, BorderLayout.SOUTH);
         return p;
     }
 
     private JComponent partyCard() {
-        Surface card = new Surface(new BorderLayout(0, 12));
-        card.add(sectionTitle("YOUR PARTY  (1 to 4 heroes)"), BorderLayout.NORTH);
+        PixelPanel card = new PixelPanel(new BorderLayout(0, 12));
+        card.add(sectionTitle("YOUR PARTY (1 TO 4 HEROES)"), BorderLayout.NORTH);
         partyRows.setOpaque(false);
         partyRows.setLayout(new BoxLayout(partyRows, BoxLayout.Y_AXIS));
         card.add(partyRows, BorderLayout.CENTER);
@@ -93,11 +94,11 @@ final class SetupPanel extends BackdropPanel {
         JPanel column = new JPanel(new GridLayout(2, 1, 0, 24));
         column.setOpaque(false);
 
-        Surface create = new Surface(new BorderLayout(0, 12));
+        PixelPanel create = new PixelPanel(new BorderLayout(0, 12));
         create.add(sectionTitle("NEW HERO"), BorderLayout.NORTH);
-        styleField(nameField);
+        PixelUi.styleField(nameField);
         classBox.setFont(GuiTheme.sans(java.awt.Font.PLAIN, 14f));
-        DarkUi.styleCombo(classBox);
+        PixelUi.styleCombo(classBox);
         classBox.setPreferredSize(new Dimension(200, 38));
         JPanel form = new JPanel(new GridLayout(2, 1, 0, 12));
         form.setOpaque(false);
@@ -121,9 +122,9 @@ final class SetupPanel extends BackdropPanel {
         buttons.add(customButton);
         create.add(buttons, BorderLayout.SOUTH);
 
-        Surface adventure = new Surface(new BorderLayout(0, 12));
+        PixelPanel adventure = new PixelPanel(new BorderLayout(0, 12));
         adventure.add(sectionTitle("THE ADVENTURE"), BorderLayout.NORTH);
-        styleField(themeField);
+        PixelUi.styleField(themeField);
         JPanel themeRow = new JPanel(new BorderLayout(10, 0));
         themeRow.setOpaque(false);
         themeRow.add(label("Theme"), BorderLayout.WEST);
@@ -133,7 +134,7 @@ final class SetupPanel extends BackdropPanel {
         themeBox.add(themeRow, BorderLayout.NORTH);
         JLabel hint = new JLabel("Optional, for example: haunted lighthouse, or leave it empty for a surprise.");
         hint.setFont(GuiTheme.sans(java.awt.Font.PLAIN, 12f));
-        hint.setForeground(GuiTheme.MUTED);
+        hint.setForeground(PixelTheme.muted());
         themeBox.add(hint, BorderLayout.CENTER);
         JPanel themeTop = new JPanel(new BorderLayout());
         themeTop.setOpaque(false);
@@ -143,7 +144,6 @@ final class SetupPanel extends BackdropPanel {
         go.setOpaque(false);
         go.add(startButton);
         go.add(loadButton);
-        go.add(backButton);
         adventure.add(go, BorderLayout.SOUTH);
 
         column.add(create);
@@ -209,8 +209,7 @@ final class SetupPanel extends BackdropPanel {
             info("There are no saved games yet.");
             return;
         }
-        Object choice = JOptionPane.showInputDialog(this, "Choose a saved game:", "Load game",
-                JOptionPane.QUESTION_MESSAGE, null, saves.toArray(), saves.get(0));
+        Object choice = PixelDialogs.choose(this, "LOAD GAME", "Choose a saved game:", saves, "LOAD").orElse(null);
         if (choice == null) {
             return;
         }
@@ -246,7 +245,7 @@ final class SetupPanel extends BackdropPanel {
         if (party.isEmpty()) {
             JLabel empty = new JLabel("<html>No heroes yet.<br>Add a name and a class on the right.</html>");
             empty.setFont(GuiTheme.serif(java.awt.Font.ITALIC, 15f));
-            empty.setForeground(GuiTheme.MUTED);
+            empty.setForeground(PixelTheme.muted());
             partyRows.add(empty);
         }
         for (Character c : party) {
@@ -265,11 +264,12 @@ final class SetupPanel extends BackdropPanel {
             @Override
             protected void paintComponent(java.awt.Graphics g) {
                 java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
-                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(GuiTheme.SURFACE_ALT);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
-                g2.setColor(GuiTheme.PURPLE);
-                g2.fillRoundRect(0, 10, 4, getHeight() - 20, 4, 4);
+                g2.setColor(PixelTheme.field());
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                g2.setColor(PixelTheme.edge());
+                g2.drawRect(0, 0, getWidth() - 1, getHeight() - 1);
+                g2.setColor(PixelTheme.hiliteFill());
+                g2.fillRect(0, 0, 4, getHeight());
                 g2.dispose();
             }
         };
@@ -277,16 +277,17 @@ final class SetupPanel extends BackdropPanel {
         row.setBorder(GuiTheme.padding(10, 16, 10, 12));
         JLabel name = new JLabel(c.getName() + "  the " + c.getCharacterClass().name());
         name.setFont(GuiTheme.serif(java.awt.Font.BOLD, 17f));
+        name.setForeground(PixelTheme.body());
         StringBuilder stats = new StringBuilder();
         for (Stat s : Stat.values()) {
             stats.append(s.name(), 0, 3).append(' ').append(c.getStat(s)).append("  ");
         }
         JLabel vitals = new JLabel("HP " + c.getMaxHealth() + "    AC " + c.getArmorClass());
         vitals.setFont(GuiTheme.sans(java.awt.Font.PLAIN, 12f));
-        vitals.setForeground(GuiTheme.PURPLE_SOFT);
+        vitals.setForeground(PixelTheme.hilite());
         JLabel detail = new JLabel(stats.toString().trim());
         detail.setFont(GuiTheme.mono(java.awt.Font.PLAIN, 12f));
-        detail.setForeground(GuiTheme.MUTED);
+        detail.setForeground(PixelTheme.muted());
         JPanel lines = new JPanel(new BorderLayout(0, 2));
         lines.setOpaque(false);
         lines.add(vitals, BorderLayout.NORTH);
@@ -295,7 +296,7 @@ final class SetupPanel extends BackdropPanel {
         text.setOpaque(false);
         text.add(name, BorderLayout.NORTH);
         text.add(lines, BorderLayout.SOUTH);
-        StyledButton remove = new StyledButton("Remove", false);
+        PixelButton remove = new PixelButton("REMOVE", false);
         remove.addActionListener(e -> remove(c));
         row.add(text, BorderLayout.CENTER);
         row.add(remove, BorderLayout.EAST);
@@ -311,38 +312,29 @@ final class SetupPanel extends BackdropPanel {
         nameField.setEnabled(!busy);
         themeField.setEnabled(!busy);
         classBox.setEnabled(!busy);
-        status.setForeground(GuiTheme.PURPLE_SOFT);
+        status.setForeground(PixelTheme.hilite());
         status.setText(message);
     }
 
     private void info(String message) {
-        status.setForeground(GuiTheme.MUTED);
+        status.setForeground(PixelTheme.text());
         status.setText(message);
     }
 
     private void error(String message) {
-        status.setForeground(GuiTheme.ERROR);
+        status.setForeground(PixelTheme.bad());
         status.setText(message);
     }
 
-    private static JLabel sectionTitle(String text) {
-        JLabel l = new JLabel(text);
-        l.setFont(GuiTheme.sans(java.awt.Font.BOLD, 12f));
-        l.setForeground(GuiTheme.PURPLE_SOFT);
-        return l;
+    private static JComponent sectionTitle(String text) {
+        return new PixelLabel(text, 2, PixelTheme::hilite);
     }
 
     private static JLabel label(String text) {
         JLabel l = new JLabel(text);
         l.setFont(GuiTheme.sans(java.awt.Font.PLAIN, 14f));
-        l.setForeground(GuiTheme.MUTED);
+        l.setForeground(PixelTheme.text());
         l.setPreferredSize(new Dimension(52, 20));
         return l;
-    }
-
-    private static void styleField(JTextField f) {
-        f.setFont(GuiTheme.sans(java.awt.Font.PLAIN, 14f));
-        f.setBorder(GuiTheme.fieldBorder());
-        f.setPreferredSize(new Dimension(200, 38));
     }
 }

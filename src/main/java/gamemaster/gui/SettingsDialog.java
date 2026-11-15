@@ -2,87 +2,72 @@ package gamemaster.gui;
 
 import gamemaster.app.GameFacade;
 import java.awt.BorderLayout;
-import java.awt.FlowLayout;
 import javax.swing.BoxLayout;
-import javax.swing.ButtonGroup;
-import javax.swing.JCheckBox;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JRadioButton;
 
 /** The settings reachable from the title screen: colour mode, demo mode and sound. */
-final class SettingsDialog extends JDialog {
+final class SettingsDialog extends PixelDialog {
 
     SettingsDialog(MainWindow owner, GameFacade game) {
-        super(owner, "Settings", true);
+        super(owner, "SETTINGS");
         JPanel body = new JPanel();
         body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
-        body.setBackground(GuiTheme.BG);
-        body.setBorder(GuiTheme.padding(18, 22, 8, 22));
+        body.setOpaque(false);
 
-        body.add(heading("Appearance"));
-        JPanel modes = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
-        modes.setOpaque(false);
-        ButtonGroup group = new ButtonGroup();
+        body.add(heading("APPEARANCE"));
+        JPanel modes = row();
         for (GuiTheme.Mode m : GuiTheme.Mode.values()) {
-            JRadioButton b = new JRadioButton(m == GuiTheme.Mode.DARK ? "Dark (dusk)" : "Light (daytime)",
-                    m == GuiTheme.mode());
-            style(b);
+            PixelButton b = new PixelButton(m == GuiTheme.Mode.DARK ? "DUSK" : "DAYTIME", false);
+            b.setChosen(m == GuiTheme.mode());
             b.addActionListener(e -> {
                 dispose();
                 owner.switchMode(m);
             });
-            group.add(b);
             modes.add(b);
         }
         body.add(modes);
 
-        body.add(heading("Demo mode"));
-        JCheckBox demo = new JCheckBox("5 turns and one easy enemy, so a victory can be shown quickly",
+        body.add(heading("DEMO MODE"));
+        PixelCheck demo = new PixelCheck("5 turns and one easy enemy, so a victory can be shown quickly",
                 game.isDemoMode());
-        style(demo);
         demo.addActionListener(e -> game.setDemoMode(demo.isSelected()));
-        JPanel demoRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
-        demoRow.setOpaque(false);
+        JPanel demoRow = row();
         demoRow.add(demo);
         body.add(demoRow);
 
-        body.add(heading("Sound"));
-        StyledButton sound = new StyledButton("Sound settings...", false);
-        sound.addActionListener(e -> new SoundDialog(owner).setVisible(true));
-        JPanel soundRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
-        soundRow.setOpaque(false);
+        body.add(heading("SOUND"));
+        PixelButton sound = new PixelButton("SOUND SETTINGS...", false);
+        sound.addActionListener(e -> new SoundDialog(owner).open(this));
+        JPanel soundRow = row();
         soundRow.add(sound);
         body.add(soundRow);
 
-        StyledButton close = new StyledButton("Close", true);
+        body().add(body, BorderLayout.CENTER);
+        PixelButton close = new PixelButton("CLOSE", true);
         close.addActionListener(e -> dispose());
-        JPanel south = new JPanel();
-        south.setBackground(GuiTheme.BG);
-        south.setBorder(GuiTheme.padding(8, 0, 12, 0));
-        south.add(close);
-
-        setLayout(new BorderLayout());
-        add(body, BorderLayout.CENTER);
-        add(south, BorderLayout.SOUTH);
-        pack();
-        setResizable(false);
-        setLocationRelativeTo(owner);
+        setButtons(close);
+        getRootPane().setDefaultButton(close);
     }
 
-    private static JLabel heading(String text) {
-        JLabel l = new JLabel(text);
-        l.setForeground(GuiTheme.TEXT);
-        l.setFont(GuiTheme.sans(java.awt.Font.BOLD, 14f));
-        l.setBorder(GuiTheme.padding(14, 12, 6, 0));
+    private static JPanel row() {
+        JPanel p = new JPanel() {
+            @Override public java.awt.Component add(java.awt.Component c) {
+                if (getComponentCount() > 0) {
+                    super.add(javax.swing.Box.createHorizontalStrut(8));
+                }
+                return super.add(c);
+            }
+        };
+        p.setLayout(new BoxLayout(p, BoxLayout.X_AXIS));
+        p.setOpaque(false);
+        p.setAlignmentX(0f);
+        return p;
+    }
+
+    private static PixelLabel heading(String text) {
+        PixelLabel l = new PixelLabel(text, 2, PixelTheme::text);
         l.setAlignmentX(0f);
+        l.setBorder(GuiTheme.padding(18, 0, 8, 0));
         return l;
-    }
-
-    private static void style(javax.swing.AbstractButton b) {
-        b.setOpaque(false);
-        b.setForeground(GuiTheme.TEXT);
-        b.setFont(GuiTheme.sans(java.awt.Font.PLAIN, 14f));
     }
 }

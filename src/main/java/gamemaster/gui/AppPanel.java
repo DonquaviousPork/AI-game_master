@@ -51,7 +51,7 @@ final class AppPanel extends JPanel {
                 () -> {
                     Window w = SwingUtilities.getWindowAncestor(this);
                     if (w instanceof MainWindow mw) {
-                        new SettingsDialog(mw, game).setVisible(true);
+                        new SettingsDialog(mw, game).open(mw);
                     }
                 },
                 () -> {

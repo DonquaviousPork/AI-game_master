@@ -56,10 +56,28 @@ final class PixelFont {
         g('-', ".....", ".....", ".....", "#####", ".....", ".....", ".....");
         g('.', ".....", ".....", ".....", ".....", ".....", ".##..", ".##..");
         g('>', "#....", ".#...", "..#..", "...#.", "..#..", ".#...", "#....");
+        g(',', ".....", ".....", ".....", ".....", ".##..", "..#..", ".#...");
+        g('!', "..#..", "..#..", "..#..", "..#..", "..#..", ".....", "..#..");
+        g('?', ".###.", "#...#", "....#", "...#.", "..#..", ".....", "..#..");
+        g(':', ".....", ".##..", ".##..", ".....", ".##..", ".##..", ".....");
+        g('/', "....#", "....#", "...#.", "..#..", ".#...", "#....", "#....");
+        g('(', "..#..", ".#...", "#....", "#....", "#....", ".#...", "..#..");
+        g(')', "..#..", "...#.", "....#", "....#", "....#", "...#.", "..#..");
+        g('\'', "..#..", "..#..", ".#...", ".....", ".....", ".....", ".....");
+        g('"', ".#.#.", ".#.#.", ".....", ".....", ".....", ".....", ".....");
+        g('+', ".....", "..#..", "..#..", "#####", "..#..", "..#..", ".....");
+        g('%', "##..#", "##..#", "...#.", "..#..", ".#...", "#..##", "#..##");
+        g('_', ".....", ".....", ".....", ".....", ".....", ".....", "#####");
+        g('<', "...#.", "..#..", ".#...", "#....", ".#...", "..#..", "...#.");
         g(' ', ".....", ".....", ".....", ".....", ".....", ".....", ".....");
     }
 
     private PixelFont() {}
+
+    /** True when the font can draw {@code c} (letters are drawn in capitals). */
+    static boolean has(char c) {
+        return GLYPHS.containsKey(Character.toUpperCase(c));
+    }
 
     /** Width in pixels of {@code text} at {@code scale}, with one blank column between letters. */
     static int width(String text, int scale) {
@@ -94,6 +112,23 @@ final class PixelFont {
         for (char raw : text.toUpperCase().toCharArray()) {
             String[] rows = GLYPHS.getOrDefault(raw, GLYPHS.get(' '));
             for (int ry = 0; ry < H; ry++) {
+                for (int rx = 0; rx < W; rx++) {
+                    if (rows[ry].charAt(rx) == '#') {
+                        g2.fillRect(cx + rx * scale, y + ry * scale, scale, scale);
+                    }
+                }
+            }
+            cx += (W + 1) * scale;
+        }
+    }
+
+    /** Like {@link #paint} but each row of the letters fades from {@code top} to {@code bottom}. */
+    static void paintGradient(java.awt.Graphics2D g2, String text, int x, int y, int scale, Color top, Color bottom) {
+        int cx = x;
+        for (char raw : text.toUpperCase().toCharArray()) {
+            String[] rows = GLYPHS.getOrDefault(raw, GLYPHS.get(' '));
+            for (int ry = 0; ry < H; ry++) {
+                g2.setColor(blend(top, bottom, ry / (double) (H - 1)));
                 for (int rx = 0; rx < W; rx++) {
                     if (rows[ry].charAt(rx) == '#') {
                         g2.fillRect(cx + rx * scale, y + ry * scale, scale, scale);

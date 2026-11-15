@@ -43,9 +43,8 @@ final class CombatantCard extends JPanel {
             @Override
             public void mouseClicked(java.awt.event.MouseEvent e) {
                 JLabel body = new JLabel(details);
-                body.setForeground(GuiTheme.TEXT);
-                javax.swing.JOptionPane.showMessageDialog(CombatantCard.this, body, title,
-                        javax.swing.JOptionPane.PLAIN_MESSAGE);
+                body.setForeground(PixelTheme.body());
+                PixelDialogs.message(CombatantCard.this, title.toUpperCase(), body);
             }
         });
 

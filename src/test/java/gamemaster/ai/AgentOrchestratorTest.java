@@ -391,4 +391,29 @@ class AgentOrchestratorTest {
         assertFalse(e.checkEndCondition());
         assertTrue(new AgentOrchestrator(new FakeLLM("ok"), e).takeTurn("y").gameOver());
     }
+
+    @Test
+    void theModelIsToldWhenAnEngineTargetHasNotAppearedYet() {
+        GameEngine e = engine();
+        e.setScenario(new Scenario("Grove", "d", "Defeat the Wisp.", gamemaster.game.ObjectiveType.DEFEAT_TARGET, "Wisp"));
+        FakeLLM llm = new FakeLLM("A quiet clearing.");
+        new AgentOrchestrator(llm, e).takeTurn("I look around");
+        String prompt = llm.calls.get(0).get(1).content();
+        assertTrue(prompt.contains("\"Wisp\" has not appeared yet"), prompt);
+    }
+
+    @Test
+    void whenTheEngineEndsTheStoryTheModelIsToldToWriteAClosingScene() {
+        GameEngine e = engine(19, 8);
+        e.setScenario(new Scenario("Grove", "d", "Defeat the Wisp.", gamemaster.game.ObjectiveType.DEFEAT_TARGET, "Wisp"));
+        e.addMonster(new gamemaster.model.Monster("Wisp", 5, 10, gamemaster.model.Weapon.DAGGER));
+        FakeLLM llm = new FakeLLM().thenTool("attack", "{\"attacker\":\"Brenna\",\"target\":\"Wisp\"}")
+                .thenText("The wisp fades and the grove sighs with relief.");
+        TurnResult r = new AgentOrchestrator(llm, e).takeTurn("I strike the wisp");
+        assertTrue(r.gameOver());
+        assertTrue(e.getState().isObjectiveAchieved());
+        String toolMessage = llm.calls.get(1).get(llm.calls.get(1).size() - 1).content();
+        assertTrue(toolMessage.contains("the story has just ended as a victory"), toolMessage);
+        assertTrue(r.narration().contains("grove sighs"));
+    }
 }

@@ -16,7 +16,6 @@ import javax.swing.ButtonGroup;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
-import javax.swing.JOptionPane;
 import javax.swing.JRadioButtonMenuItem;
 import javax.swing.KeyStroke;
 
@@ -61,7 +60,7 @@ final class MainWindow extends JFrame {
         JMenu settings = new JMenu("Settings");
         settings.setMnemonic(KeyEvent.VK_S);
         javax.swing.JMenuItem sound = new javax.swing.JMenuItem("Sound...");
-        sound.addActionListener(e -> new SoundDialog(this).setVisible(true));
+        sound.addActionListener(e -> new SoundDialog(this).open(this));
         settings.add(sound);
         JCheckBoxMenuItem demo = new JCheckBoxMenuItem("Demo mode: 5 turns, one easy enemy",
                 game.isDemoMode());
@@ -102,8 +101,7 @@ final class MainWindow extends JFrame {
             return;
         }
         if (app.playScreen().isBusy()) {
-            JOptionPane.showMessageDialog(this, "Wait for the game master to finish this turn, then switch.",
-                    "Colour mode", JOptionPane.INFORMATION_MESSAGE);
+            PixelDialogs.message(this, "COLOUR MODE", "Wait for the game master to finish this turn, then switch.");
             setJMenuBar(buildMenuBar());
             return;
         }
@@ -131,11 +129,9 @@ final class MainWindow extends JFrame {
     void requestClose() {
         GamePanel play = app.playScreen();
         if (play.hasUnsavedProgress()) {
-            String[] options = {"Save and quit", "Quit without saving", "Cancel"};
-            int choice = JOptionPane.showOptionDialog(this,
+            int choice = PixelDialogs.confirm(this, "UNSAVED GAME",
                     "You have unsaved progress. If you quit now it will be lost.",
-                    "Unsaved game", JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE,
-                    null, options, options[0]);
+                    "Save and quit", "Quit without saving", "Cancel");
             if (choice == 0) {
                 if (!play.save()) {
                     return;     // the save was cancelled or failed: stay open

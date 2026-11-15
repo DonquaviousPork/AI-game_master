@@ -19,7 +19,6 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
@@ -319,8 +318,8 @@ final class GamePanel extends BackdropPanel implements GameView {
 
     /** Asks for a name and saves. Returns true only if the game was actually saved. */
     boolean save() {
-        Object name = JOptionPane.showInputDialog(this, "Name this save (letters, digits, - and _):",
-                "Save game", JOptionPane.PLAIN_MESSAGE);
+        Object name = PixelDialogs.input(this, "SAVE GAME", "Name this save (letters, digits, - and _):", "")
+                .orElse(null);
         if (name == null) {
             return false;
         }
@@ -349,11 +348,9 @@ final class GamePanel extends BackdropPanel implements GameView {
             return;
         }
         if (unsaved) {
-            String[] options = {"Save and leave", "Leave without saving", "Cancel"};
-            int choice = JOptionPane.showOptionDialog(this,
+            int choice = PixelDialogs.confirm(this, "UNSAVED GAME",
                     "You have unsaved progress. If you go back to the main menu it will be lost.",
-                    "Unsaved game", JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE,
-                    null, options, options[0]);
+                    "Save and leave", "Leave without saving", "Cancel");
             if (choice == 0) {
                 if (!save()) {
                     return;
@@ -376,8 +373,7 @@ final class GamePanel extends BackdropPanel implements GameView {
             setStatus("There are no saved games yet.", GuiTheme.MUTED);
             return;
         }
-        Object choice = JOptionPane.showInputDialog(this, "Choose a saved game:", "Load game",
-                JOptionPane.QUESTION_MESSAGE, null, saves.toArray(), saves.get(0));
+        Object choice = PixelDialogs.choose(this, "LOAD GAME", "Choose a saved game:", saves, "LOAD").orElse(null);
         if (choice == null) {
             return;
         }

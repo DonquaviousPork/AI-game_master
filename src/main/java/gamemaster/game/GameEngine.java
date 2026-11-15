@@ -54,7 +54,35 @@ public class GameEngine {
         history.record(action);
         state.addLog(result.summary());
         advancePhase();
+        checkObjective();
         return result;
+    }
+
+    /**
+     * True when the engine's own state shows the objective is met. Only the typed objectives are decided here;
+     * a NARRATIVE objective is never met by the engine.
+     */
+    public boolean objectiveMet() {
+        Scenario scenario = state.getScenario();
+        if (scenario == null || state.getParty().isDefeated()) {
+            return false;
+        }
+        var monsters = state.getMonsters();
+        return switch (scenario.type()) {
+            case DEFEAT_TARGET -> monsters.stream()
+                    .anyMatch(m -> m.getName().equalsIgnoreCase(scenario.target())) && monsters.stream()
+                    .filter(m -> m.getName().equalsIgnoreCase(scenario.target())).noneMatch(m -> m.isAlive());
+            case DEFEAT_ALL -> !monsters.isEmpty() && monsters.stream().noneMatch(m -> m.isAlive());
+            case SURVIVE, NARRATIVE -> false;
+        };
+    }
+
+    /** Ends the story as a victory the moment a typed objective is met. */
+    private void checkObjective() {
+        if (!state.isConcluded() && objectiveMet()) {
+            state.addLog("Objective achieved: " + state.getScenario().objective());
+            concludeStory(true);
+        }
     }
 
     /** Undoes the last action's state change. Returns false when there was nothing to undo. */

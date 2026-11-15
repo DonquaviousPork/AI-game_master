@@ -365,3 +365,19 @@ the git history; this file is the design-level record.
 - `GameViewModel` now also carries the log lines.
 - Title screen: the castle's walls run down behind the front hill so it sits on the ridge instead of floating; the strip behind the menu shows the same animated scene, blurred and dimmed.
 - Tests: `CardReactionTest` (hit, critical, miss, heal, defeat, cheer, no reaction without a change). 286 tests, 0 failures.
+
+## Commit 28 - The engine decides victory
+- `game/ObjectiveType` (new): NARRATIVE, DEFEAT_TARGET, DEFEAT_ALL, SURVIVE. `Scenario` now carries `type` and `target`; the three-argument constructor stays and means NARRATIVE, so older code and saves behave as before.
+- `GameEngine.objectiveMet()` / `checkObjective()`: after every resolved action the engine looks at its own state. Defeating the named target (or every enemy) ends the story as a victory with no AI involvement. Surviving to the turn limit is a victory for SURVIVE; for the other types the turn limit is still a defeat.
+- `EndStoryTool` refuses `objective_achieved: true` for a typed objective that the engine has not met, so the AI cannot award a win; it can still end the story as a defeat or narrate the ending.
+- `ScenarioGenerator`: the model is asked for `objective_type` and `objective_target`. A target that is not in the monster list, or "defeat_all" with no monsters, is downgraded to NARRATIVE. Demo mode's easy scenario is now a real DEFEAT_TARGET objective.
+- `StateDescriber` and the system prompt tell the model when the engine decides, so it narrates the ending instead of claiming it.
+- Saves: `GameSnapshot` gains `objectiveType` and `objectiveTarget`; saves without them load as NARRATIVE.
+- Tests: `ObjectiveTest` plus two orchestrator tests (the AI cannot claim a typed win; SURVIVE is won at the limit). 294 tests, 0 failures.
+
+## Commit 28b - A story before and after the fight
+- Problem seen in testing after commit 28: every adventure was one fight against a boss. The generator preferred typed objectives that named a monster, so the boss was on the field from turn one, and the engine ended the story the instant it fell.
+- `ScenarioGenerator`: the prompt now asks for a quiet opening scene and an empty monster list; the named boss (`objective_target`) appears later. A `defeat_target` objective only needs a non-blank name; one with none becomes NARRATIVE. `defeat_all` is no longer offered to the model (the engine still supports it). Demo mode still starts at the showdown: if the model named a boss but listed no enemy, the engine adds it as a weak enemy.
+- `StateDescriber`: while the target has not appeared, the model is told to build the story first and bring it in with `spawn_monster` (exact name) by about the halfway turn.
+- `AgentOrchestrator`: when a tool call makes the engine end the story, the tool result tells the model to write a short closing scene, so the last narration is an ending and not another fight round.
+- Tests: 300 tests (+6), 0 failures.

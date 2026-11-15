@@ -1,6 +1,7 @@
 package gamemaster.ai;
 
 import gamemaster.game.GameEngine;
+import gamemaster.game.ObjectiveType;
 import gamemaster.game.GameSnapshot;
 import gamemaster.game.GameState;
 import gamemaster.game.StoryEvent;
@@ -45,9 +46,12 @@ public class AgentOrchestrator {
               and you then narrate the failed attempt.
             - The game state shows one fixed OBJECTIVE and the turn number. That objective is the only
               goal of the adventure: never add new goals, quests or mysteries, and do not stretch the
-              story. When the heroes achieve it, call end_story with objective_achieved true and narrate
-              the ending. On the final turn, call end_story (objective_achieved false if they did not
-              achieve it). Keep each scene short and directed at the objective.
+              story. If the game state says the ENGINE decides the objective, the game ends the story by
+              itself the moment it is met (do not call end_story with objective_achieved true yourself;
+              the game will refuse it) and you only narrate the ending in your reply. Otherwise, when the
+              heroes achieve it, call end_story with objective_achieved true and narrate the ending. On the
+              final turn the game ends the story if you do not. Keep each scene short and directed at the
+              objective.
             - Critical hits and fumbles are decided by the dice; report them as the tool states them.
             - When you have what you need, reply with two to four sentences of narration for the player
               and, if the story is still going, end with what the heroes can do next. Do not use tools
@@ -120,8 +124,15 @@ public class AgentOrchestrator {
                     result = "Error: too many actions this turn. Narrate what has happened so far.";
                 } else {
                     toolRuns++;
+                    boolean wasOver = engine.checkEndCondition();
                     result = tools.execute(call);
                     activity.add(call.name() + ": " + result);
+                    if (!wasOver && engine.getState().isConcluded()) {
+                        result += " [GAME: the story has just ended"
+                                + (engine.getState().isObjectiveAchieved() ? " as a victory" : "")
+                                + ". Reply with a short closing scene (two to four sentences) that wraps up the "
+                                + "adventure. Do not use more tools.]";
+                    }
                 }
                 messages.add(ChatMessage.toolResult(call.id(), result));
             }
@@ -138,9 +149,12 @@ public class AgentOrchestrator {
         if (!engine.checkEndCondition() && state.getTurnsTaken() >= state.getTurnLimit()) {
             // The engine, not the model, guarantees the adventure ends.
             state.addLog("The turn limit was reached.");
-            engine.concludeStory(false);
+            boolean survived = state.getScenario() != null && state.getScenario().type() == ObjectiveType.SURVIVE;
+            engine.concludeStory(survived);
             activity.add("turn limit: The " + state.getTurnLimit() + "-turn limit was reached and the adventure ended.");
-            narration = narration + "\n\nTime has run out. The adventure ends here without the objective being achieved.";
+            narration = narration + (survived
+                    ? "\n\nThe time has passed and the heroes held out. The objective is achieved."
+                    : "\n\nTime has run out. The adventure ends here without the objective being achieved.");
         }
         if (!narration.isBlank()) {
             engine.setCurrentEvent(new StoryEvent(narration));

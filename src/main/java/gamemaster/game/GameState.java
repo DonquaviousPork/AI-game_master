@@ -179,7 +179,9 @@ public class GameState {
                 memoryRecent == null ? List.of() : memoryRecent,
                 scenario == null ? "" : scenario.objective(),
                 turnsTaken,
-                objectiveAchieved);
+                objectiveAchieved,
+                scenario == null ? "NARRATIVE" : scenario.type().name(),
+                scenario == null ? "" : scenario.target());
     }
 
     /**
@@ -192,7 +194,8 @@ public class GameState {
         List<Character> heroes = snapshot.party().stream().map(GameSnapshot.CharacterData::toCharacter).toList();
         List<Monster> enemies = snapshot.monsters().stream().map(GameSnapshot.MonsterData::toMonster).toList();
         Scenario newScenario = snapshot.scenarioTitle() == null ? null
-                : new Scenario(snapshot.scenarioTitle(), snapshot.scenarioDescription(), snapshot.objective());
+                : new Scenario(snapshot.scenarioTitle(), snapshot.scenarioDescription(), snapshot.objective(),
+                        ObjectiveType.parse(snapshot.objectiveType()), snapshot.objectiveTarget());
         StoryEvent newEvent = snapshot.currentEvent() == null || snapshot.currentEvent().isBlank() ? null
                 : new StoryEvent(snapshot.currentEvent());
 

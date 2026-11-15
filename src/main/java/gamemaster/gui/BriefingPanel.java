@@ -10,28 +10,24 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 /** Shown once, right after the adventure is created: what the story is and the goal the party is working towards. */
-final class BriefingPanel extends BackdropPanel {
+final class BriefingPanel extends PixelBackdrop {
 
     private final JLabel title = new JLabel(" ");
-    private final JLabel description = text(GuiTheme.sans(java.awt.Font.PLAIN, 16f), GuiTheme.TEXT);
-    private final JLabel objective = text(GuiTheme.serif(java.awt.Font.BOLD, 24f), GuiTheme.TEXT);
-    private final JLabel rules = text(GuiTheme.sans(java.awt.Font.PLAIN, 14f), GuiTheme.MUTED);
-    private final StyledButton begin = new StyledButton("Begin the adventure", true);
+    private final JLabel description = text(GuiTheme.sans(java.awt.Font.PLAIN, 16f), PixelTheme.body());
+    private final JLabel objective = text(GuiTheme.serif(java.awt.Font.BOLD, 24f), PixelTheme.hilite());
+    private final JLabel rules = text(GuiTheme.sans(java.awt.Font.PLAIN, 14f), PixelTheme.text());
+    private final PixelButton begin = new PixelButton("BEGIN THE ADVENTURE", true);
 
     BriefingPanel(Runnable onBegin) {
         super(new GridBagLayout());
         setBorder(GuiTheme.padding(30, 60, 30, 60));
 
         title.setFont(GuiTheme.serif(java.awt.Font.BOLD, 40f));
-        title.setForeground(GuiTheme.PURPLE_SOFT);
-        JLabel heading = new JLabel("YOUR OBJECTIVE");
-        heading.setFont(GuiTheme.sans(java.awt.Font.BOLD, 13f));
-        heading.setForeground(GuiTheme.PURPLE_SOFT);
+        title.setForeground(PixelTheme.hilite());
+        PixelLabel heading = new PixelLabel("YOUR OBJECTIVE", 2, PixelTheme::text);
 
-        JPanel card = new JPanel(new BorderLayout(0, 8));
-        card.setOpaque(false);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(GuiTheme.BORDER, 1, true), GuiTheme.padding(18, 22, 18, 22)));
+        PixelPanel card = new PixelPanel(new BorderLayout(0, 10));
+        card.setBorder(GuiTheme.padding(18, 22, 18, 22));
         card.add(heading, BorderLayout.NORTH);
         card.add(objective, BorderLayout.CENTER);
 

@@ -197,4 +197,37 @@ class ScenarioGeneratorTest {
         GeneratedScenario s = new ScenarioGenerator(new FakeLLM(VALID)).generate(null, false);
         assertEquals(9, s.monsters().get(0).getMaxHealth());
     }
+
+    private static String typed(String type, String target) {
+        return "{\"title\":\"T\",\"description\":\"D\",\"objective\":\"Defeat the Wisp.\",\"objective_type\":\""
+                + type + "\",\"objective_target\":\"" + target + "\",\"opening_event\":\"E\",\"monsters\":[]}";
+    }
+
+    @Test
+    void aTargetThatAppearsLaterIsAcceptedWithNoOpeningMonsters() {
+        GeneratedScenario s = ScenarioGenerator.parse(typed("defeat_target", "Wisp"));
+        assertEquals(gamemaster.game.ObjectiveType.DEFEAT_TARGET, s.scenario().type());
+        assertEquals("Wisp", s.scenario().target());
+        assertTrue(s.monsters().isEmpty());
+    }
+
+    @Test
+    void aTargetObjectiveWithoutATargetBecomesNarrative() {
+        GeneratedScenario s = ScenarioGenerator.parse(typed("defeat_target", ""));
+        assertEquals(gamemaster.game.ObjectiveType.NARRATIVE, s.scenario().type());
+    }
+
+    @Test
+    void surviveAndUnknownTypesAreHandled() {
+        assertEquals(gamemaster.game.ObjectiveType.SURVIVE, ScenarioGenerator.parse(typed("survive", "")).scenario().type());
+        assertEquals(gamemaster.game.ObjectiveType.NARRATIVE, ScenarioGenerator.parse(typed("rescue", "")).scenario().type());
+    }
+
+    @Test
+    void demoModePutsTheNamedBossOnTheFieldWhenTheModelListedNone() {
+        GeneratedScenario s = ScenarioGenerator.makeEasy(ScenarioGenerator.parse(typed("defeat_target", "Wisp")));
+        assertEquals(1, s.monsters().size());
+        assertEquals("Wisp", s.monsters().get(0).getName());
+        assertTrue(s.monsters().get(0).getMaxHealth() <= ScenarioGenerator.EASY_MAX_HEALTH);
+    }
 }

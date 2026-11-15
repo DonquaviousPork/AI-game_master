@@ -24,9 +24,28 @@ final class StateDescriber {
         if (state.getScenario() != null && !state.getScenario().objective().isBlank()) {
             sb.append("OBJECTIVE (fixed, the only goal; never add another): ")
                     .append(state.getScenario().objective()).append('\n');
-            if (state.isEasyWin()) {
-                sb.append("DEMO: the objective is achieved as soon as the enemy is defeated. When it falls, call "
-                        + "end_story with objective_achieved true.\n");
+            switch (state.getScenario().type()) {
+                case DEFEAT_TARGET -> sb.append("ENGINE-DECIDED: the objective is met when the enemy \"")
+                        .append(state.getScenario().target()).append("\" is defeated. The game ends the story as a "
+                                + "victory by itself at that moment; do not call end_story to claim it.\n");
+                case DEFEAT_ALL -> sb.append("ENGINE-DECIDED: the objective is met when every enemy is defeated. "
+                        + "The game ends the story as a victory by itself at that moment; do not call end_story "
+                        + "to claim it.\n");
+                case SURVIVE -> sb.append("ENGINE-DECIDED: the objective is met if at least one hero is still "
+                        + "standing when the turn limit is reached; the game ends the story by itself then.\n");
+                default -> {
+                    if (state.isEasyWin()) {
+                        sb.append("DEMO: the objective is achieved as soon as the enemy is defeated. When it falls, call "
+                                + "end_story with objective_achieved true.\n");
+                    }
+                }
+            }
+            var scenario = state.getScenario();
+            if (scenario.type() == gamemaster.game.ObjectiveType.DEFEAT_TARGET && state.getMonsters().stream()
+                    .noneMatch(m -> m.getName().equalsIgnoreCase(scenario.target()))) {
+                sb.append("The enemy \"").append(scenario.target()).append("\" has not appeared yet. Build the story "
+                        + "first (scenes, clues, talk), then bring it in with spawn_monster using exactly that name "
+                        + "by about the halfway turn, so the showdown happens and the adventure has a proper ending.\n");
             }
             int turn = state.getTurnsTaken();
             sb.append("Turn ").append(turn).append(" of ").append(state.getTurnLimit()).append(". ");

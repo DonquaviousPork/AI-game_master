@@ -35,6 +35,11 @@ public class EndStoryTool implements Tool {
         }
         boolean achieved = args.has("objective_achieved") && !args.get("objective_achieved").isJsonNull()
                 && args.get("objective_achieved").getAsBoolean();
+        var scenario = engine.getState().getScenario();
+        if (achieved && scenario != null && scenario.type().engineDecides() && !engine.objectiveMet()) {
+            throw new IllegalStateException("The game engine decides whether this objective is met, and it is not met yet. "
+                    + "Keep playing toward it; the game ends the story by itself when it is.");
+        }
         engine.getState().addLog("The story ends: " + ending);
         engine.concludeStory(achieved);
         return (achieved ? "Objective achieved. " : "Objective not achieved. ") + "The story has concluded. Phase: " + engine.getState().getPhase().name() + ".";
