@@ -89,6 +89,7 @@ public class GameFacade {
             throw new IllegalStateException("Add 1 to " + Party.MAX_SIZE + " characters before starting.");
         }
         GeneratedScenario scenario = new ScenarioGenerator(llm).generate(theme);
+        state.setTurnLimit(turnLimit);
         scenario.applyTo(engine);
         state.addLog("The adventure begins: " + scenario.scenario().title());
         return scenario;
@@ -122,6 +123,7 @@ public class GameFacade {
 
     public void load(String slot) {
         saves.load(slot, engine, memory);
+        state.setTurnLimit(turnLimit);
     }
 
     public List<String> listSaves() {
@@ -131,6 +133,18 @@ public class GameFacade {
     // ---- state for the interfaces ----
 
     public GameState getState() { return state; }
+
+    private int turnLimit = GameState.TURN_LIMIT;
+
+    /** Sets how many turns the next adventure (or loaded game) lasts; 20 is normal, fewer suits a demo. */
+    public void setTurnLimit(int turns) {
+        if (turns < 1 || turns > GameState.TURN_LIMIT) {
+            throw new IllegalArgumentException("The turn limit must be between 1 and " + GameState.TURN_LIMIT + ".");
+        }
+        turnLimit = turns;
+    }
+
+    public int getTurnLimit() { return turnLimit; }
 
     /** Hears about rate-limit waits (seconds left; 0 when the request goes again). */
     public void onRateLimitWait(LLMClient.WaitListener listener) { llm.setWaitListener(listener); }

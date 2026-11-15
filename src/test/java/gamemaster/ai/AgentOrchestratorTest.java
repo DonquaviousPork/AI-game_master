@@ -325,6 +325,30 @@ class AgentOrchestratorTest {
     }
 
     @Test
+    void aShorterDemoTurnLimitEndsTheAdventureSoonerAndIsShownToTheModel() {
+        GameEngine e = engineWithObjective();
+        e.getState().setTurnLimit(3);
+        FakeLLM llm = new FakeLLM("a", "b", "c", "d");
+        AgentOrchestrator agent = new AgentOrchestrator(llm, e);
+        agent.takeTurn("one");
+        assertTrue(llm.calls.get(0).get(1).content().contains("Turn 1 of 3"), llm.calls.get(0).get(1).content());
+        agent.takeTurn("two");
+        TurnResult r = agent.takeTurn("three");
+        assertTrue(r.gameOver());
+        assertTrue(r.toolActivity().get(r.toolActivity().size() - 1).contains("The 3-turn limit"));
+    }
+
+    @Test
+    void theTurnLimitMustBeBetweenOneAndTheNormalLimit() {
+        GameEngine e = engineWithObjective();
+        assertThrows(IllegalArgumentException.class, () -> e.getState().setTurnLimit(0));
+        assertThrows(IllegalArgumentException.class, () -> e.getState().setTurnLimit(GameState.TURN_LIMIT + 1));
+        e.getState().setTurnLimit(5);
+        assertEquals(5, e.getState().getTurnLimit());
+        assertEquals(5, e.getState().turnsLeft());
+    }
+
+    @Test
     void endingTheStoryWithTheObjectiveAchievedIsAVictory() {
         GameEngine e = engineWithObjective();
         FakeLLM llm = new FakeLLM().thenTool("end_story", "{\"ending\":\"The spring runs clear.\",\"objective_achieved\":true}")

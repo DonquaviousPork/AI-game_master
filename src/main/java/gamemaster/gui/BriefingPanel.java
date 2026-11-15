@@ -1,7 +1,6 @@
 package gamemaster.gui;
 
 import gamemaster.ai.GeneratedScenario;
-import gamemaster.game.GameState;
 import java.awt.BorderLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -58,11 +57,11 @@ final class BriefingPanel extends BackdropPanel {
         begin.addActionListener(e -> onBegin.run());
     }
 
-    void show(GeneratedScenario s) {
+    void show(GeneratedScenario s, int turns) {
         title.setText(s.scenario().title());
         description.setText(WrappedText.html(s.scenario().description(), 820));
         objective.setText(WrappedText.html(s.scenario().objective(), 740));
-        rules.setText(WrappedText.html("You have " + GameState.TURN_LIMIT + " turns. Reach the objective before they run out and you win. "
+        rules.setText(WrappedText.html("You have " + turns + " turns. Reach the objective before they run out and you win. "
                 + "If the party falls, or the turns run out first, the adventure ends in defeat. "
                 + "The turn counter and your objective stay at the top of the screen.", 820));
     }

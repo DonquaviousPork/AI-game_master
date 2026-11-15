@@ -119,6 +119,11 @@ public class CliSession {
             }
             case "saves" -> out.println(game.listSaves().isEmpty()
                     ? "No saved games." : "Saved games: " + String.join(", ", game.listSaves()));
+            case "turns" -> {
+                requireArg(arg, "Usage: /turns <1-" + GameState.TURN_LIMIT + ">  (applies to the next adventure)");
+                game.setTurnLimit(Integer.parseInt(arg.trim()));
+                out.println("The next adventure will last " + game.getTurnLimit() + " turns.");
+            }
             case "usage" -> out.println(game.usageSummary() + ".");
             case "new" -> {
                 game.returnToMenu();
@@ -166,7 +171,7 @@ public class CliSession {
         out.println(wrap(s.scenario().description()));
         out.println();
         out.println("OBJECTIVE: " + s.scenario().objective());
-        out.println("You have " + GameState.TURN_LIMIT + " turns. Reach the objective before they run out to win.");
+        out.println("You have " + game.getState().getTurnLimit() + " turns. Reach the objective before they run out to win.");
         out.println();
         out.println(wrap(s.openingEvent().description()));
         for (Monster m : s.monsters()) {
@@ -191,7 +196,7 @@ public class CliSession {
         GameState s = game.getState();
         if (s.getScenario() != null) {
             out.println("Adventure: " + s.getScenario().title() + "   Phase: " + s.getPhase().name()
-                    + "   Turn " + Math.min(s.getTurnsTaken(), GameState.TURN_LIMIT) + "/" + GameState.TURN_LIMIT);
+                    + "   Turn " + Math.min(s.getTurnsTaken(), s.getTurnLimit()) + "/" + s.getTurnLimit());
             if (!s.getScenario().objective().isBlank()) {
                 out.println("Objective: " + s.getScenario().objective());
             }
@@ -221,8 +226,8 @@ public class CliSession {
     }
 
     private String statusLine() {
-        StringBuilder sb = new StringBuilder("[Turn " + Math.min(game.getState().getTurnsTaken(), GameState.TURN_LIMIT)
-                + "/" + GameState.TURN_LIMIT + "] Party: ");
+        StringBuilder sb = new StringBuilder("[Turn " + Math.min(game.getState().getTurnsTaken(), game.getState().getTurnLimit())
+                + "/" + game.getState().getTurnLimit() + "] Party: ");
         sb.append(String.join(" | ", game.getParty().stream()
                 .map(c -> c.getName() + " " + c.getHealth() + "/" + c.getMaxHealth()).toList()));
         var monsters = game.getState().getMonsters().stream().filter(Monster::isAlive).toList();
@@ -252,6 +257,7 @@ public class CliSession {
         out.println("  /status   show the scene, party and enemies");
         out.println("  /undo     undo the last damage or flee (dice are not re-rolled)");
         out.println("  /save <name>, /load <name>, /saves");
+        out.println("  /turns <n>  set the turn limit for the next adventure (a short one is handy for demos)");
         out.println("  /usage    model calls and tokens used so far");
         out.println("  /new      abandon this adventure and go back to setup");
         out.println("  /help, /quit");

@@ -332,3 +332,9 @@ the git history; this file is the design-level record.
 - GUI: status line counts down ("retrying automatically in N s") with a "Stop waiting" button; token usage shown after each turn; clicking a hero or enemy card opens its stats (abilities with modifiers, HP, AC, attacks); the background glows drift and a slow wave runs along the bottom.
 - CLI: prints the countdown note; new `/usage` command.
 - `MemoryManager`: recent window 8 -> 6 turns, narration kept in memory cut to 300 characters (fewer tokens per call).
+
+## Commit 21 - Sound, demo mode, Main menu fix
+- Fix: the "Main menu" button was never connected to its handler, so it did nothing (during play or after the story ended). It now works.
+- Sound (`audio/ToneSynth`, `audio/Sound`): every sound is generated in code (no audio files): a button click, looping menu music (setup and briefing screens), and victory and defeat jingles when the story ends. Playback runs on a background thread and does nothing if there is no sound device.
+- Settings menu: "Sound..." dialog (music volume, effects volume, mute; remembered between runs) and "Demo mode: 5-turn adventures".
+- Demo mode: `GameState` has an instance turn limit (default 20, `setTurnLimit`); `GameFacade.setTurnLimit` applies to the next adventure or loaded game; CLI `/turns <n>`. The briefing, turn counter, model prompt and forced ending all follow the chosen limit.

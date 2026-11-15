@@ -1,6 +1,7 @@
 package gamemaster.gui;
 
 import gamemaster.app.GameFacade;
+import gamemaster.audio.Sound;
 import java.awt.CardLayout;
 import javax.swing.JPanel;
 
@@ -20,30 +21,39 @@ final class AppPanel extends JPanel {
         super(new CardLayout());
         setLayout(cards);
         play = new GamePanel(game);
-        briefing = new BriefingPanel(() -> cards.show(this, PLAY));
+        briefing = new BriefingPanel(() -> {
+            Sound.get().stopMusic();
+            cards.show(this, PLAY);
+        });
         setup = new SetupPanel(game,
                 scenario -> {
                     play.begin(scenario);
-                    briefing.show(scenario);
+                    briefing.show(scenario, game.getState().getTurnLimit());
                     cards.show(this, BRIEFING);
                 },
                 () -> {
                     play.resume();
+                    Sound.get().stopMusic();
                     cards.show(this, PLAY);
                 });
         play.setOnMenu(() -> {
             setup.showMenu();
+            Sound.get().startMenuMusic();
             cards.show(this, SETUP);
         });
         add(setup, SETUP);
         add(briefing, BRIEFING);
         add(play, PLAY);
         cards.show(this, SETUP);
+        Sound.get().startMenuMusic();
     }
 
     GamePanel playScreen() { return play; }
 
-    void showPlay() { cards.show(this, PLAY); }
+    void showPlay() {
+        Sound.get().stopMusic();
+        cards.show(this, PLAY);
+    }
 
     boolean isShowingPlay() { return play.isVisible() || briefing.isVisible(); }
 }

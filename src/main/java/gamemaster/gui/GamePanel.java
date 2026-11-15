@@ -6,6 +6,7 @@ import gamemaster.app.GameFacade;
 import gamemaster.game.GameState;
 import gamemaster.game.GameView;
 import gamemaster.model.Monster;
+import gamemaster.audio.Sound;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -79,6 +80,7 @@ final class GamePanel extends BackdropPanel implements GameView {
         undo.addActionListener(e -> undo());
         save.addActionListener(e -> save());
         load.addActionListener(e -> load());
+        menu.addActionListener(e -> leaveToMenu());
         battle.addActionListener(e -> setBattleMode(!battleMode));
         battle.setToolTipText("Combat only: pick each hero's attack and target from menus instead of typing");
         stopWait.setVisible(false);
@@ -138,6 +140,11 @@ final class GamePanel extends BackdropPanel implements GameView {
         sidebar.repaint();
         if (over && !endingShown) {
             endingShown = true;
+            if (m.victory()) {
+                Sound.get().victory();
+            } else {
+                Sound.get().defeat();
+            }
             paragraph(m.ending().isEmpty() ? "The story has ended." : "The story has ended. " + m.ending(), Style.ENDING);
             setStatus("The story has ended. You can load a saved game.", GuiTheme.PURPLE_SOFT);
         }
@@ -173,7 +180,7 @@ final class GamePanel extends BackdropPanel implements GameView {
         endingShown = false;
         paragraph(s.scenario().description(), Style.NARRATION);
         paragraph(s.openingEvent().description(), Style.SCENE);
-        paragraph("OBJECTIVE: " + s.scenario().objective() + "  (" + GameState.TURN_LIMIT + " turns)", Style.SCENE);
+        paragraph("OBJECTIVE: " + s.scenario().objective() + "  (" + game.getState().getTurnLimit() + " turns)", Style.SCENE);
         for (var hero : game.getParty()) {
             paragraph(GameViewModel.attacksLine(hero), Style.RULES);
         }

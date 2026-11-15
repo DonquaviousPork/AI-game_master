@@ -25,8 +25,8 @@ final class StateDescriber {
             sb.append("OBJECTIVE (fixed, the only goal; never add another): ")
                     .append(state.getScenario().objective()).append('\n');
             int turn = state.getTurnsTaken();
-            sb.append("Turn ").append(turn).append(" of ").append(GameState.TURN_LIMIT).append(". ");
-            if (turn >= GameState.TURN_LIMIT) {
+            sb.append("Turn ").append(turn).append(" of ").append(state.getTurnLimit()).append(". ");
+            if (turn >= state.getTurnLimit()) {
                 sb.append("THIS IS THE FINAL TURN: bring the story to its end now by calling end_story "
                         + "(objective_achieved true only if the heroes achieved the objective).\n");
             } else if (state.turnsLeft() <= 3) {

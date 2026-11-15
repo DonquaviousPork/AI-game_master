@@ -135,11 +135,11 @@ public class AgentOrchestrator {
 
         narration = TextCleaner.clean(narration);
         var state = engine.getState();
-        if (!engine.checkEndCondition() && state.getTurnsTaken() >= GameState.TURN_LIMIT) {
+        if (!engine.checkEndCondition() && state.getTurnsTaken() >= state.getTurnLimit()) {
             // The engine, not the model, guarantees the adventure ends.
             state.addLog("The turn limit was reached.");
             engine.concludeStory(false);
-            activity.add("turn limit: The " + GameState.TURN_LIMIT + "-turn limit was reached and the adventure ended.");
+            activity.add("turn limit: The " + state.getTurnLimit() + "-turn limit was reached and the adventure ended.");
             narration = narration + "\n\nTime has run out. The adventure ends here without the objective being achieved.";
         }
         if (!narration.isBlank()) {

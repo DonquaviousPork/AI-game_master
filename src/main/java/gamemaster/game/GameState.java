@@ -29,6 +29,7 @@ public class GameState {
 
     /** An adventure lasts this many player turns; the engine ends it when they are used up. */
     public static final int TURN_LIMIT = 20;
+    private int turnLimit = TURN_LIMIT;
 
     public GameState(Party party) {
         this.party = Objects.requireNonNull(party, "party");
@@ -58,7 +59,16 @@ public class GameState {
     public GamePhase getPhase() { return phase; }
     public boolean isConcluded() { return concluded; }
     public int getTurnsTaken() { return turnsTaken; }
-    public int turnsLeft() { return Math.max(0, TURN_LIMIT - turnsTaken); }
+    public int turnsLeft() { return Math.max(0, turnLimit - turnsTaken); }
+    public int getTurnLimit() { return turnLimit; }
+
+    /** Sets how many turns the adventure lasts (20 normally; a shorter limit is used for demos). */
+    public void setTurnLimit(int turns) {
+        if (turns < 1 || turns > TURN_LIMIT) {
+            throw new IllegalArgumentException("The turn limit must be between 1 and " + TURN_LIMIT + ".");
+        }
+        this.turnLimit = turns;
+    }
     public boolean isObjectiveAchieved() { return objectiveAchieved; }
     public List<Monster> getMonsters() { return Collections.unmodifiableList(monsters); }
     public List<String> getLog() { return Collections.unmodifiableList(log); }

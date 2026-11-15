@@ -1,7 +1,13 @@
 package gamemaster.gui;
 
 import gamemaster.app.GameFacade;
+import gamemaster.audio.Sound;
+import java.awt.AWTEvent;
 import java.awt.Dimension;
+import java.awt.Toolkit;
+import java.awt.event.MouseEvent;
+import javax.swing.AbstractButton;
+import javax.swing.JCheckBoxMenuItem;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -27,6 +33,7 @@ final class MainWindow extends JFrame {
         addWindowListener(new WindowAdapter() {
             @Override public void windowClosing(WindowEvent e) { requestClose(); }
         });
+        installClickSound();
         app = new AppPanel(game);
         setContentPane(app);
         setJMenuBar(buildMenuBar());
@@ -50,7 +57,36 @@ final class MainWindow extends JFrame {
             view.add(item);
         }
         bar.add(view);
+
+        JMenu settings = new JMenu("Settings");
+        settings.setMnemonic(KeyEvent.VK_S);
+        javax.swing.JMenuItem sound = new javax.swing.JMenuItem("Sound...");
+        sound.addActionListener(e -> new SoundDialog(this).setVisible(true));
+        settings.add(sound);
+        JCheckBoxMenuItem demo = new JCheckBoxMenuItem("Demo mode: 5-turn adventures",
+                game.getTurnLimit() < gamemaster.game.GameState.TURN_LIMIT);
+        demo.setToolTipText("Makes the next adventure (or loaded game) end after 5 turns, so every feature can be shown quickly");
+        demo.addActionListener(e -> game.setTurnLimit(demo.isSelected() ? DEMO_TURNS : gamemaster.game.GameState.TURN_LIMIT));
+        settings.add(demo);
+        bar.add(settings);
         return bar;
+    }
+
+    private static final int DEMO_TURNS = 5;
+    private static boolean clickSoundInstalled;
+
+    /** Plays a click whenever any button in the window is pressed. */
+    private static void installClickSound() {
+        if (clickSoundInstalled) {
+            return;
+        }
+        clickSoundInstalled = true;
+        Toolkit.getDefaultToolkit().addAWTEventListener(event -> {
+            if (event instanceof MouseEvent me && me.getID() == MouseEvent.MOUSE_PRESSED
+                    && me.getSource() instanceof AbstractButton b && b.isEnabled()) {
+                Sound.get().click();
+            }
+        }, AWTEvent.MOUSE_EVENT_MASK);
     }
 
     /**
