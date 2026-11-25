@@ -32,7 +32,13 @@ public class CliSession {
         game.onRateLimitWait(this::announceWait);
     }
 
+    private boolean echoInput;
     private int lastAnnounced = -1;
+
+    /** When the commands come from a file, print each one after the prompt so the output reads like a transcript. */
+    public void setEchoInput(boolean echo) {
+        this.echoInput = echo;
+    }
 
     /** Prints a short note when a rate-limited request is waiting, about every 10 seconds. */
     private void announceWait(int secondsLeft) {
@@ -48,16 +54,24 @@ public class CliSession {
     public void run() throws IOException {
         out.println("=== AI Game Master ===");
         out.println("Build your party, then start an adventure. Type /help for commands.");
+        boolean prompt = true;
         while (true) {
-            out.print(game.isStarted() ? "> " : "setup> ");
-            out.flush();
+            if (prompt) {
+                out.print(game.isStarted() ? "> " : "setup> ");
+                out.flush();
+            }
+            prompt = true;
             String line = in.readLine();
             if (line == null) {
                 break;
             }
             line = line.trim();
-            if (line.isEmpty()) {
+            if (line.isEmpty() || (echoInput && line.startsWith("#"))) {
+                prompt = false;
                 continue;
+            }
+            if (echoInput) {
+                out.println(line);
             }
             try {
                 if (!handle(line)) {

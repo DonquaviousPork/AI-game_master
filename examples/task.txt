@@ -1,0 +1,23 @@
+# Example task for the command-line mode:
+#   java -jar target/AIGameMaster.jar -LLMAPI -input examples/task.txt -output result.txt
+# One command or player action per line. Lines starting with # are ignored.
+
+# 1. Build the party
+/add Fighter Brenna
+/add Wizard Mira
+
+# 2. Short demo adventure (5 turns, one weak enemy) with a theme for the model
+/demo
+/start haunted willow grove
+
+# 3. Player turns (the model narrates, the engine rolls and applies the rules)
+Brenna: I look around the grove for the creature
+Brenna: Power Strike on the nearest enemy
+Mira: Fire Bolt on the nearest enemy
+Mira: Staff Strike on the nearest enemy
+Brenna: Slash the nearest enemy
+
+# 4. Show the result
+/status
+/usage
+/quit

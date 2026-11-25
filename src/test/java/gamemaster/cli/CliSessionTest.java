@@ -180,4 +180,23 @@ class CliSessionTest {
         String out = run(llm, String.join("\n", "/add Fighter Brenna", "/start crypt", "/status", "/quit"));
         assertTrue(out.contains("odds vs Skeleton (AC"), out);
     }
+
+    @Test
+    void fileInputIsEchoedAndCommentsAreSkipped() throws Exception {
+        saveDir = Files.createTempDirectory("cli");
+        GameFacade game = new GameFacade(new FakeLLM(SCENARIO), new SaveService(new SaveRepository(saveDir)),
+                new RuleEngine(new FixedDice(10)));
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        CliSession session = new CliSession(game,
+                new BufferedReader(new StringReader("# a comment\n/add Fighter Brenna\n/party\n")),
+                new PrintStream(bytes, true, StandardCharsets.UTF_8));
+        session.setEchoInput(true);
+        session.run();
+        String out = bytes.toString(StandardCharsets.UTF_8);
+
+        assertTrue(out.contains("/add Fighter Brenna"), out);
+        assertFalse(out.contains("a comment"), out);
+        assertTrue(out.contains("Added Brenna the Fighter"), out);
+        assertTrue(out.trim().endsWith("Goodbye."), "ends cleanly at the end of the file: " + out);
+    }
 }

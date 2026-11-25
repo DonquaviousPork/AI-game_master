@@ -424,3 +424,12 @@ the git history; this file is the design-level record.
 - Card speech bubbles: a defeated card no longer reacts to anything (before, an attack that missed a fallen enemy made it say "Nice try."). Enemies now have their own defeat lines ("Impossible...", "Curse you!") instead of sharing the heroes'.
 - Reliability audit fixes (after a playtest): (1) the attack log now shows the natural die and the modifier, e.g. "rolled 3 vs AC 12: d20 1 +2", so a total of 3 that is really a natural 1 is no longer confusing (the rule itself was already correct: a fumble is only a natural 1); (2) after each hero attack the model is reminded which living enemies have not attacked this round, and the system prompt says the rules log is the only truth about hits, damage and health, because one run narrated an enemy hit that was never resolved; (3) a spawn asking for more than 30 health is lowered to 30 and says so, instead of an error the model repeated; (4) attacks on an already-defeated enemy are hidden from the visible activity like the other phase-change refusals.
 - Tests: `StatusEffectsTest` (14), `ReliabilityTest` (12), plus new tests in `GameViewModelTest` and `CardReactionTest`. 382 tests, 0 failures.
+
+
+## Commit 34: runnable jar with command-line options (batch mode)
+- `gamemaster.Main` is now the jar's entry point: GUI by default, command-line game with `-cli` or `-input`.
+- `CliOptions` parses `-cli`, `-input <file>`, `-output <file>`, `-LLMAPI`, `-help`; bad options give a readable message and exit code 2.
+- `CliApp.run(options)` reads commands from the input file (echoed, `#` comments skipped), tees output to `-output`, and ends at end of file.
+- `CliSession.setEchoInput`; the prompt is not printed twice when a comment line is skipped.
+- `examples/task.txt` and a README section with the option table and a working example.
+- Tests: `CliOptionsTest` (5) and one file-input test in `CliSessionTest`. Total 388.

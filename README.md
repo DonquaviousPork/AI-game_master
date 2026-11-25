@@ -52,6 +52,28 @@ Command-line game:
 
 or run `gamemaster.cli.CliApp` from your IDE.
 
+### Runnable jar and batch mode
+Build the jar with `mvn package` (this runs the tests too). `target/AIGameMaster.jar` starts the
+GUI by default; options choose the command-line game:
+
+| Option | Meaning |
+|---|---|
+| (none) | start the graphical game |
+| `-cli` | command-line game, commands typed on the keyboard |
+| `-input <file>` | command-line game that runs the commands in `<file>`, one per line (`#` lines are comments). It ends at the end of the file or at `/quit`. |
+| `-output <file>` | also write everything the command line prints to `<file>` |
+| `-LLMAPI` | use the OpenAI-compatible model API set in `.env` (the default; accepted so the command line can be written explicitly) |
+| `-help` | print the options |
+
+Working example (needs `.env` with a key, see Setup):
+
+    java -jar target/AIGameMaster.jar -LLMAPI -input examples/task.txt -output result.txt
+
+`examples/task.txt` builds a two-hero party, starts a short demo adventure and plays a few turns.
+The commands are echoed after each prompt, so `result.txt` reads like a transcript: the narration
+comes from the model, the `[rules]` lines come from the engine. Standard input also works:
+`java -jar target/AIGameMaster.jar -cli < examples/task.txt`.
+
 To check that your key and model work without playing, run `gamemaster.ai.LiveCheck`
 from your IDE. It makes one real model call and prints a generated scenario.
 
